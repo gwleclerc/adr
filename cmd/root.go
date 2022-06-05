@@ -5,6 +5,8 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -15,10 +17,14 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "adr",
-	Short: "A tool to manage Architecture Decision Records (ADRs)",
-	Long:  `A tool to manage Architecture Decision Records (ADRs)`,
+	Use:           "adr",
+	Short:         "A tool to manage Architecture Decision Records (ADRs)",
+	Long:          `A tool to manage Architecture Decision Records (ADRs)`,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
+
+var SilentErr = errors.New("SilentErr")
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -37,10 +43,16 @@ func init() {
 		`Aliases:`, `{{StyleHeading "Aliases:"}}`,
 		`Available Commands:`, `{{StyleHeading "Available Commands:"}}`,
 		`Global Flags:`, `{{StyleHeading "Global Flags:"}}`,
-		// The following one steps on "Global Flags:"
-		// `Flags:`, `{{StyleHeading "Flags:"}}`,
 	).Replace(usageTemplate)
+
+	// To avoid conflicts with 'Global Flags' we use regex for 'Flags'
 	re := regexp.MustCompile(`(?m)^Flags:\s*$`)
 	usageTemplate = re.ReplaceAllLiteralString(usageTemplate, `{{StyleHeading "Flags:"}}`)
+
 	rootCmd.SetUsageTemplate(usageTemplate)
+	rootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		fmt.Println(Red(err.Error()))
+		fmt.Println(cmd.UsageString())
+		return SilentErr
+	})
 }

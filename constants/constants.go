@@ -1,6 +1,7 @@
 package constants
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fatih/color"
@@ -28,11 +29,36 @@ type AdrStatus string
 
 // ADR status enums
 const (
-	PROPOSED   AdrStatus = "Proposed"
-	ACCEPTED   AdrStatus = "Accepted"
-	DEPRECATED AdrStatus = "Deprecated"
-	SUPERSEDED AdrStatus = "Superseded"
+	PROPOSED   AdrStatus = "proposed"
+	ACCEPTED   AdrStatus = "accepted"
+	DEPRECATED AdrStatus = "deprecated"
+	SUPERSEDED AdrStatus = "superseded"
+	UNKNOWN    AdrStatus = "unknown"
 )
+
+// String is used both by fmt.Print and by Cobra in help text
+func (e *AdrStatus) String() string {
+	return string(*e)
+}
+
+// Set must have pointer receiver so it doesn't change the value of a copy
+func (e *AdrStatus) Set(v string) error {
+	switch AdrStatus(v) {
+	case UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED:
+		*e = AdrStatus(v)
+		return nil
+	default:
+		return fmt.Errorf(
+			"must be one of %q, %q, %q, %q or %q",
+			UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED,
+		)
+	}
+}
+
+// Type is only used in help text
+func (e *AdrStatus) Type() string {
+	return "status"
+}
 
 type AdrData struct {
 	ID     string    `yaml:"id"`

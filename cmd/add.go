@@ -23,33 +23,67 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	author string
+	tags   []string
+	status AdrStatus = ACCEPTED
+)
+
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add <record title...>",
+	Use:   "add [flags] <record title...>",
 	Short: "Add a new ADR",
-	Long: `Create a new architecture decision record.
-	It will be created in the directory defined in the nearest .adrrc configuration file`,
+	Long: fmt.Sprintf(
+		`
+Create a new architecture decision record.
+It will be created in the directory defined in the nearest %s configuration file.`,
+		ConfigurationFile,
+	),
 	Run: func(cmd *cobra.Command, args []string) {
 		title := strings.Join(args, " ")
 		if len(args) <= 0 || title == "" {
-			fmt.Printf("%s %s %s\n", Red("You must specify a"), RedUnderline("title"), Red("as arguments."))
-			cmd.Usage()
+			fmt.Printf("%s %s %s\n", Red("invalid argument: please specify a"), RedUnderline("title"), Red("as arguments"))
+			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
 		path, err := utils.RetrieveADRsPath()
 		if err != nil {
-			fmt.Println(Red("Unable to retrieve ADRs path, you should look at the .adrrc configuration file:\n\t%s", err.Error()))
+			fmt.Println(Red("unable to retrieve ADRs path, you should look at the %s configuration file: %v", ConfigurationFile, err))
+			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
 		fmt.Println(Green("Creating a new record %q", title))
 		if err := addRecord(path, title); err != nil {
-			fmt.Println(Red("Unable to add ADRs directory:\n\t%s", err.Error()))
+			fmt.Println(Red("unable to add ADRs directory: %v", err))
+			fmt.Println(cmd.UsageString())
+			os.Exit(1)
 		}
-		fmt.Println(Green("Record has been successfully created at %q", path))
+		cmd.Println(Green("Record has been successfully created at %q", path))
 	},
 }
 
 func init() {
+	addCmd.Flags().StringVarP(
+		&author,
+		"author",
+		"a",
+		"",
+		"author of the record",
+	)
+	addCmd.Flags().VarP(
+		&status,
+		"status",
+		"s",
+		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated" or "superseded"`,
+	)
+	addCmd.Flags().StringSliceVarP(
+		&tags,
+		"tags",
+		"t",
+		[]string{},
+		`tags of the record`,
+	)
+
 	rootCmd.AddCommand(addCmd)
 }
 
@@ -76,24 +110,28 @@ func addRecord(path, title string) error {
 	}
 	defer file.Close()
 
-	username, err := gitconfig.Username()
-	if err != nil {
-		fmt.Printf("Unable to find a git user:\n\t%s", err.Error())
-		user, err := user.Current()
+	if author == "" {
+		username, err := gitconfig.Username()
 		if err != nil {
-			fmt.Printf("Unable to find a OS user:\n\t%s", err.Error())
-			username = DefaultUserName
-		} else {
-			username = user.Username
+			fmt.Printf("Unable to find a git user:\n\t%s", err.Error())
+			user, err := user.Current()
+			if err != nil {
+				fmt.Printf("Unable to find a OS user:\n\t%s", err.Error())
+				username = DefaultUserName
+			} else {
+				username = user.Username
+			}
 		}
+		author = username
 	}
 
 	record := AdrData{
 		ID:     shortid.MustGenerate(),
 		Title:  slug,
-		Status: ACCEPTED,
+		Status: status,
 		Date:   time.Now(),
-		Author: username,
+		Author: author,
+		Tags:   tags,
 	}
 
 	b, err := yaml.Marshal(record)
@@ -104,7 +142,7 @@ func addRecord(path, title string) error {
 	humanizedDate := record.Date.Format(time.RFC1123)
 	err = templates.Templates[CreateADRTemplate].Execute(file, map[string]any{
 		"Header": strings.Trim(string(b), "\n"),
-		"Title":  title,
+		"Title":  strings.Title(strings.ToLower(title)),
 		"Date":   humanizedDate,
 	})
 	if err != nil {
