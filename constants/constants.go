@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fatih/color"
+	"github.com/jwalton/gchalk"
 )
 
 const (
@@ -14,10 +14,12 @@ const (
 )
 
 var (
-	Red          = color.New(color.FgRed).SprintfFunc()
-	RedUnderline = color.New(color.FgRed, color.Underline).SprintfFunc()
-	Green        = color.New(color.FgGreen).SprintfFunc()
-	Yellow       = color.New(color.FgYellow).SprintfFunc()
+	Red          = gchalk.WithRed().Sprintf
+	RedUnderline = gchalk.WithRed().WithUnderline().Sprintf
+	Green        = gchalk.WithGreen().Sprintf
+	Yellow       = gchalk.WithYellow().Sprintf
+	Grey         = gchalk.WithGrey().Sprintf
+	White        = gchalk.WithWhite().Sprintf
 )
 
 type Config struct {
@@ -52,6 +54,18 @@ func (e *AdrStatus) Set(v string) error {
 			"must be one of %q, %q, %q, %q or %q",
 			UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED,
 		)
+	}
+}
+
+// Colorized returns the AdrStatus as a colored string
+func (e AdrStatus) Colorized() string {
+	switch e {
+	case PROPOSED:
+		return Yellow(e.String())
+	case ACCEPTED, SUPERSEDED:
+		return Green(e.String())
+	default:
+		return Grey(e.String())
 	}
 }
 
