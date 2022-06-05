@@ -1,7 +1,3 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
@@ -29,10 +25,10 @@ var (
 	status AdrStatus = ACCEPTED
 )
 
-// addCmd represents the add command
-var addCmd = &cobra.Command{
-	Use:   "add [flags] <record title...>",
-	Short: "Add a new ADR",
+// newCmd represents the new command
+var newCmd = &cobra.Command{
+	Use:   "new [flags] <record title...>",
+	Short: "Create a new ADR",
 	Long: fmt.Sprintf(
 		`
 Create a new architecture decision record.
@@ -53,8 +49,8 @@ It will be created in the directory defined in the nearest %s configuration file
 			os.Exit(1)
 		}
 		fmt.Println(Green("Creating a new record %q", title))
-		if err := addRecord(path, title); err != nil {
-			fmt.Println(Red("unable to add ADRs directory: %v", err))
+		if err := newRecord(path, title); err != nil {
+			fmt.Println(Red("unable to create a new ADRs in directory %q: %v", path, err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
@@ -63,20 +59,20 @@ It will be created in the directory defined in the nearest %s configuration file
 }
 
 func init() {
-	addCmd.Flags().StringVarP(
+	newCmd.Flags().StringVarP(
 		&author,
 		"author",
 		"a",
 		"",
 		"author of the record",
 	)
-	addCmd.Flags().VarP(
+	newCmd.Flags().VarP(
 		&status,
 		"status",
 		"s",
 		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated" or "superseded"`,
 	)
-	addCmd.Flags().StringSliceVarP(
+	newCmd.Flags().StringSliceVarP(
 		&tags,
 		"tags",
 		"t",
@@ -84,10 +80,10 @@ func init() {
 		`tags of the record`,
 	)
 
-	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(newCmd)
 }
 
-func addRecord(path, title string) error {
+func newRecord(path, title string) error {
 	adrs, err := utils.IndexADRs(path)
 	if err != nil {
 		return err
