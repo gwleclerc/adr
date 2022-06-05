@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	ConfigurationFile = ".adrrc"
+	ConfigurationFile = ".adrrc.yml"
 	DefaultUserName   = "Unknown"
 	CreateADRTemplate = "create_adr.tpl"
 )
