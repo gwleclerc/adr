@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/dustin/go-humanize"
 	. "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/utils"
 	"github.com/olekukonko/tablewriter"
@@ -74,7 +72,7 @@ func listRecords(path string) error {
 		return err
 	}
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Title", "Status", "Author", "Date", "Tags"})
+	table.SetHeader(TableHeader)
 	data := [][]string{}
 	for _, adr := range adrs {
 		if len(list_authors) > 0 {
@@ -99,14 +97,7 @@ func listRecords(path string) error {
 				continue
 			}
 		}
-		data = append(data, []string{
-			adr.ID,
-			adr.Title,
-			adr.Status.Colorized(),
-			adr.Author,
-			humanize.Time(adr.Date),
-			strings.Join(adr.Tags, ", "),
-		})
+		data = append(data, adr.ToRow())
 	}
 	table.AppendBulk(data)
 	fmt.Println()

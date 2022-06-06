@@ -3,17 +3,20 @@ package utils
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gernest/front"
 	. "github.com/gwleclerc/adr/constants"
+	"github.com/iancoleman/strcase"
 	"github.com/mitchellh/mapstructure"
 	"github.com/ojizero/gofindup"
 	"golang.org/x/sync/semaphore"
@@ -84,35 +87,44 @@ func IndexADRs(path string) ([]AdrData, error) {
 		go func(f fs.FileInfo) {
 			defer wg.Done()
 			defer sem.Release(1)
-			filePath := filepath.Join(path, f.Name())
+
+			adrData := AdrData{
+				Name: f.Name(),
+			}
+
+			filePath := filepath.Join(path, adrData.Name)
 			b, err := ioutil.ReadFile(filePath)
 			if err != nil {
 				fmt.Println(Yellow("Unable to read file %q: %s", filePath, err.Error()))
 				return
 			}
+
 			data, body, err := matter.Parse(bytes.NewReader(b))
 			if err != nil {
 				fmt.Println(Yellow("Unable to read yaml header from file %q: %s", filePath, err.Error()))
 				return
 			}
-			date, ok := data["date"].(string)
-			if !ok {
-				fmt.Println(Yellow("Invalid date in yaml header from file %q", filePath))
+			adrData.Body = body
+
+			err = processDate(data, "creation_date", adrData.Name)
+			if err != nil {
+				fmt.Println(Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
 				return
 			}
-			data["date"], err = time.Parse(time.RFC3339, date)
+			err = processDate(data, "last_update_date", adrData.Name)
+			if err != nil {
+				fmt.Println(Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
+				return
+			}
 			if err != nil {
 				fmt.Println(Yellow("Unable to parse date from yaml header in file %q: %s", filePath, err.Error()))
 				return
 			}
-			var adrData AdrData
 			mapstructure.Decode(data, &adrData)
 			if err != nil {
 				fmt.Println(Yellow("Invalid yaml header: %s", filePath, err.Error()))
 				return
 			}
-			adrData.Name = f.Name()
-			adrData.Body = body
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -120,10 +132,38 @@ func IndexADRs(path string) ([]AdrData, error) {
 		}(f)
 	}
 	wg.Wait()
-	mu.Lock()
-	defer mu.Unlock()
 	sort.Slice(res, func(i, j int) bool {
-		return res[i].Date.Before(res[j].Date)
+		return res[i].CreationDate.Before(res[j].CreationDate)
 	})
 	return res, nil
+}
+
+func processDate(data map[string]any, dateKey, recordName string) error {
+	// We must convert the key to camel case because mapstructure does not process snake case keys correctly
+	destKey := strcase.ToCamel(dateKey)
+	// If the date is missing, we init it with the zero value "0001-01-01 00:00:00 +0000 UTC"
+	if data[dateKey] == nil {
+		data[dateKey] = new(time.Time)
+	}
+	dateTime, ok := data[dateKey].(*time.Time)
+	if ok {
+		// If data[dateKey] is a *time.Time it is necessarily the zero value
+		// so we arbitrary add the number of the record as days to keep records order
+		if number := GetRecordNumber(recordName); number != "" {
+			num, _ := strconv.Atoi(number)
+			data[destKey] = dateTime.Add(time.Duration(num) * 24 * time.Hour)
+		}
+		return nil
+	}
+	date, ok := data[dateKey].(string)
+	if !ok {
+		return errors.New("invalid date value")
+	}
+
+	var err error
+	data[destKey], err = time.Parse(time.RFC3339, date)
+	if err != nil {
+		return err
+	}
+	return nil
 }

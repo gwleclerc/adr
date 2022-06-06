@@ -1,9 +1,10 @@
 ---
 id: zl3cUj97R
 title: change_add_command_to_new
-status: accepted
-date: 2022-06-06T00:35:32.033552+02:00
 author: Gwendal Leclerc
+status: accepted
+creation_date: 2022-06-06T00:35:32.033552+02:00
+last_update_date: 2022-06-07T00:45:04.70907+02:00
 tags:
   - refactor
 ---

@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tcnksm/go-gitconfig"
 	"github.com/teris-io/shortid"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -36,8 +35,8 @@ It will be created in the directory defined in the nearest %s configuration file
 		ConfigurationFile,
 	),
 	Run: func(cmd *cobra.Command, args []string) {
-		title := strings.Join(args, " ")
-		if len(args) <= 0 || title == "" {
+		title := strings.TrimSpace(strings.Join(args, " "))
+		if title == "" {
 			fmt.Printf("%s %s %s\n", Red("invalid argument: please specify a"), RedUnderline("title"), Red("as arguments"))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
@@ -99,7 +98,6 @@ func newRecord(path, title string) error {
 
 	slug := strings.ReplaceAll(simpleSlug.Make(title), "-", "_")
 	filename := fmt.Sprintf("%s_%s.md", prefix, slug)
-	fmt.Println(Green("Creating a new %q record", filename))
 
 	filePath := filepath.Join(path, filename)
 	file, err := os.Create(filePath)
@@ -123,29 +121,33 @@ func newRecord(path, title string) error {
 		new_author = username
 	}
 
+	date := time.Now()
 	record := AdrData{
-		ID:     shortid.MustGenerate(),
-		Title:  slug,
-		Status: new_status,
-		Date:   time.Now(),
-		Author: new_author,
-		Tags:   new_tags,
+		ID:             shortid.MustGenerate(),
+		Title:          slug,
+		Status:         new_status,
+		CreationDate:   date,
+		LastUpdateDate: date,
+		Author:         new_author,
+		Tags:           new_tags,
 	}
 
-	b, err := yaml.Marshal(record)
+	b, err := utils.MarshalYAML(record)
 	if err != nil {
 		return err
 	}
 
-	humanizedDate := record.Date.Format(time.RFC1123)
+	humanizedCreationDate := record.CreationDate.Format(time.RFC1123)
 	err = templates.Templates[CreateADRTemplate].Execute(file, map[string]any{
 		"Header": strings.Trim(string(b), "\n"),
 		"Title":  strings.Title(strings.ToLower(title)),
-		"Date":   humanizedDate,
+		"Date":   humanizedCreationDate,
 	})
 	if err != nil {
 		return err
 	}
+	fmt.Println()
 	fmt.Println(Green("Record has been successfully created at %q with ID %q", filePath, record.ID))
+	fmt.Println()
 	return nil
 }

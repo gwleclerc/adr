@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	. "github.com/gwleclerc/adr/constants"
+	"github.com/gwleclerc/adr/utils"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // initCmd represents the init command
@@ -41,7 +41,6 @@ func init() {
 }
 
 func initConfiguration(path string) error {
-	fmt.Println(Green("Initialize ADRs configuration"))
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && !info.IsDir():
@@ -57,7 +56,7 @@ func initConfiguration(path string) error {
 		return err
 	}
 	defer f.Close()
-	b, err := yaml.Marshal(Config{
+	b, err := utils.MarshalYAML(Config{
 		Directory: path,
 	})
 	if err != nil {
@@ -66,6 +65,8 @@ func initConfiguration(path string) error {
 	if _, err := f.Write(b); err != nil {
 		return err
 	}
+	fmt.Println()
 	fmt.Println(Green("ADRs configuration has been successfully initialized at %q", path))
+	fmt.Println()
 	return nil
 }
