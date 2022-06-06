@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jwalton/gchalk"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -31,11 +32,11 @@ type AdrStatus string
 
 // ADR status enums
 const (
+	UNKNOWN    AdrStatus = "unknown"
 	PROPOSED   AdrStatus = "proposed"
 	ACCEPTED   AdrStatus = "accepted"
 	DEPRECATED AdrStatus = "deprecated"
 	SUPERSEDED AdrStatus = "superseded"
-	UNKNOWN    AdrStatus = "unknown"
 )
 
 // String is used both by fmt.Print and by Cobra in help text
@@ -72,6 +73,17 @@ func (e AdrStatus) Colorized() string {
 // Type is only used in help text
 func (e *AdrStatus) Type() string {
 	return "status"
+}
+
+// AdrStatusCompletion is used to autocomplete cobra command
+func AdrStatusCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return []string{
+		fmt.Sprintf("%s\t%s", UNKNOWN, "status is not determined"),
+		fmt.Sprintf("%s\t%s", PROPOSED, "the record has been proposed but is not accepted yet by stakeholders"),
+		fmt.Sprintf("%s\t%s", ACCEPTED, "the record has been accepted by stakeholders"),
+		fmt.Sprintf("%s\t%s", DEPRECATED, "the decision record is deprecated and no longer applies"),
+		fmt.Sprintf("%s\t%s", SUPERSEDED, "the decision record has been superseded by a new one"),
+	}, cobra.ShellCompDirectiveDefault
 }
 
 type AdrData struct {

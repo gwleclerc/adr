@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	author string
-	tags   []string
-	status AdrStatus = ACCEPTED
+	new_author string
+	new_tags   []string
+	new_status AdrStatus = ACCEPTED
 )
 
 // newCmd represents the new command
@@ -48,38 +48,36 @@ It will be created in the directory defined in the nearest %s configuration file
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		fmt.Println(Green("Creating a new record %q", title))
 		if err := newRecord(path, title); err != nil {
 			fmt.Println(Red("unable to create a new ADRs in directory %q: %v", path, err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		cmd.Println(Green("Record has been successfully created at %q", path))
 	},
 }
 
 func init() {
 	newCmd.Flags().StringVarP(
-		&author,
+		&new_author,
 		"author",
 		"a",
 		"",
 		"author of the record",
 	)
 	newCmd.Flags().VarP(
-		&status,
+		&new_status,
 		"status",
 		"s",
 		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated" or "superseded"`,
 	)
+	newCmd.RegisterFlagCompletionFunc("status", AdrStatusCompletion)
 	newCmd.Flags().StringSliceVarP(
-		&tags,
+		&new_tags,
 		"tags",
 		"t",
 		[]string{},
 		`tags of the record`,
 	)
-
 	rootCmd.AddCommand(newCmd)
 }
 
@@ -98,36 +96,40 @@ func newRecord(path, title string) error {
 			break
 		}
 	}
+
 	slug := strings.ReplaceAll(simpleSlug.Make(title), "-", "_")
 	filename := fmt.Sprintf("%s_%s.md", prefix, slug)
-	file, err := os.Create(filepath.Join(path, filename))
+	fmt.Println(Green("Creating a new %q record", filename))
+
+	filePath := filepath.Join(path, filename)
+	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	if author == "" {
+	if new_author == "" {
 		username, err := gitconfig.Username()
 		if err != nil {
-			fmt.Printf("Unable to find a git user:\n\t%s", err.Error())
+			fmt.Println(Yellow("Unable to find a git user: %v", err))
 			user, err := user.Current()
 			if err != nil {
-				fmt.Printf("Unable to find a OS user:\n\t%s", err.Error())
+				fmt.Printf(Yellow("Unable to find a OS user: %v", err))
 				username = DefaultUserName
 			} else {
 				username = user.Username
 			}
 		}
-		author = username
+		new_author = username
 	}
 
 	record := AdrData{
 		ID:     shortid.MustGenerate(),
 		Title:  slug,
-		Status: status,
+		Status: new_status,
 		Date:   time.Now(),
-		Author: author,
-		Tags:   tags,
+		Author: new_author,
+		Tags:   new_tags,
 	}
 
 	b, err := yaml.Marshal(record)
@@ -144,6 +146,6 @@ func newRecord(path, title string) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println(Green("Record has been successfully created at %q with ID %q", filePath, record.ID))
 	return nil
 }

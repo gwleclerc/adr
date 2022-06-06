@@ -28,13 +28,11 @@ The path to the base directory will be stored in a %s file.`,
 			os.Exit(1)
 		}
 		path := filepath.Join(".", args[0])
-		fmt.Println(Green("Initialize ADRs configuration"))
 		if err := initConfiguration(path); err != nil {
 			fmt.Println(Red("unable to init ADRs directory: %v", err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		fmt.Println(Green("ADRs configuration has been successfully initialized at %q", path))
 	},
 }
 
@@ -43,7 +41,7 @@ func init() {
 }
 
 func initConfiguration(path string) error {
-	fmt.Printf("Test if %q directory is already exists\n", path)
+	fmt.Println(Green("Initialize ADRs configuration"))
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && !info.IsDir():
@@ -51,13 +49,9 @@ func initConfiguration(path string) error {
 	case err != nil && !os.IsNotExist(err):
 		return err
 	}
-	fmt.Printf("Create %q directory because it does not exists\n", path)
 	if err = os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
-	fmt.Printf("Directory %q has been successfully created\n", path)
-
-	fmt.Printf("Store directory path into %q configuration file\n", ConfigurationFile)
 	f, err := os.Create(ConfigurationFile)
 	if err != nil {
 		return err
@@ -72,6 +66,6 @@ func initConfiguration(path string) error {
 	if _, err := f.Write(b); err != nil {
 		return err
 	}
-	fmt.Printf("Directory path has been successfully stored in %q\n", ConfigurationFile)
+	fmt.Println(Green("ADRs configuration has been successfully initialized at %q", path))
 	return nil
 }
