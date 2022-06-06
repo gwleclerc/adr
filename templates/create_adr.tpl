@@ -14,6 +14,6 @@ Date: {{.Date}}
 
 > What is the change that we're proposing and/or doing?
 
-## Concequences
+## Implications
 
 > What becomes easier or more difficult to do because of this change?

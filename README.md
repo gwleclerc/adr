@@ -11,7 +11,7 @@ A simple command line written in Golang to manage [Architecture Decision Records
 You need to install it manually with the following command:
 
 ```bash
-go install github.com/marouni/adr@main
+go install github.com/gwleclerc/adr@main
 ```
 
 ## Initializing
