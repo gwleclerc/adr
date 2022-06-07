@@ -16,6 +16,7 @@ import (
 
 	"github.com/gernest/front"
 	. "github.com/gwleclerc/adr/constants"
+	"github.com/gwleclerc/adr/types"
 	"github.com/iancoleman/strcase"
 	"github.com/mitchellh/mapstructure"
 	"github.com/ojizero/gofindup"
@@ -38,7 +39,7 @@ func RetrieveADRsPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var config Config
+	var config types.Config
 	err = yaml.Unmarshal(b, &config)
 	if err != nil {
 		return "", err
@@ -54,8 +55,8 @@ func RetrieveADRsPath() (string, error) {
 	return fullPath, nil
 }
 
-func IndexADRs(path string) ([]AdrData, error) {
-	res := []AdrData{}
+func IndexADRs(path string) ([]types.AdrData, error) {
+	res := []types.AdrData{}
 
 	mu := sync.Mutex{}
 	sem := semaphore.NewWeighted(10)
@@ -88,7 +89,7 @@ func IndexADRs(path string) ([]AdrData, error) {
 			defer wg.Done()
 			defer sem.Release(1)
 
-			adrData := AdrData{
+			adrData := types.AdrData{
 				Name: f.Name(),
 			}
 
@@ -116,10 +117,8 @@ func IndexADRs(path string) ([]AdrData, error) {
 				fmt.Println(Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
 				return
 			}
-			if err != nil {
-				fmt.Println(Yellow("Unable to parse date from yaml header in file %q: %s", filePath, err.Error()))
-				return
-			}
+			processSet(data, "tags")
+			processSet(data, "superseders")
 			mapstructure.Decode(data, &adrData)
 			if err != nil {
 				fmt.Println(Yellow("Invalid yaml header: %s", filePath, err.Error()))
@@ -166,4 +165,19 @@ func processDate(data map[string]any, dateKey, recordName string) error {
 		return err
 	}
 	return nil
+}
+
+func processSet(data map[string]any, key string) {
+	unknown, ok := data[key].([]any)
+	if !ok {
+		return
+	}
+
+	tmp := make([]string, 0, len(unknown))
+	for _, elem := range unknown {
+		tmp = append(tmp, fmt.Sprintf("%v", elem))
+	}
+	set := make(types.Set[string], len(unknown))
+	set.Append(tmp...)
+	data[key] = set
 }

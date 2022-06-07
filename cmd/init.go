@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	. "github.com/gwleclerc/adr/constants"
-	"github.com/gwleclerc/adr/utils"
+	"github.com/gwleclerc/adr/types"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +56,7 @@ func initConfiguration(path string) error {
 		return err
 	}
 	defer f.Close()
-	b, err := utils.MarshalYAML(Config{
+	b, err := types.MarshalYAML(types.Config{
 		Directory: path,
 	})
 	if err != nil {

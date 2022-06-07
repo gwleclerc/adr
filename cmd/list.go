@@ -87,7 +87,7 @@ func listRecords(path string) error {
 		}
 		if len(list_tags) > 0 {
 			found := false
-			for _, tag := range adr.Tags {
+			for tag := range adr.Tags {
 				if slices.Contains(list_tags, tag) {
 					found = true
 					break

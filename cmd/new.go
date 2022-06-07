@@ -12,6 +12,7 @@ import (
 	simpleSlug "github.com/gosimple/slug"
 	. "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/templates"
+	"github.com/gwleclerc/adr/types"
 	"github.com/gwleclerc/adr/utils"
 	"github.com/spf13/cobra"
 	"github.com/tcnksm/go-gitconfig"
@@ -21,7 +22,7 @@ import (
 var (
 	new_author string
 	new_tags   []string
-	new_status AdrStatus = ACCEPTED
+	new_status types.AdrStatus = types.ACCEPTED
 )
 
 // newCmd represents the new command
@@ -69,7 +70,7 @@ func init() {
 		"s",
 		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated" or "superseded"`,
 	)
-	newCmd.RegisterFlagCompletionFunc("status", AdrStatusCompletion)
+	newCmd.RegisterFlagCompletionFunc("status", types.AdrStatusCompletion)
 	newCmd.Flags().StringSliceVarP(
 		&new_tags,
 		"tags",
@@ -122,17 +123,18 @@ func newRecord(path, title string) error {
 	}
 
 	date := time.Now()
-	record := AdrData{
+	record := types.AdrData{
 		ID:             shortid.MustGenerate(),
 		Title:          slug,
 		Status:         new_status,
 		CreationDate:   date,
 		LastUpdateDate: date,
 		Author:         new_author,
-		Tags:           new_tags,
+		Tags:           make(types.Set[string]),
 	}
+	record.Tags.Append(new_tags...)
 
-	b, err := utils.MarshalYAML(record)
+	b, err := types.MarshalYAML(record)
 	if err != nil {
 		return err
 	}

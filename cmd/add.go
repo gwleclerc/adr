@@ -17,18 +17,16 @@ import (
 )
 
 var (
-	update_author      string
-	update_status      types.AdrStatus
-	update_tags        []string
-	update_superseders []string
+	add_tags        []string
+	add_superseders []string
 )
 
-// updateCmd represents the update command
-var updateCmd = &cobra.Command{
-	Use:   "update [flags] <record ID>",
-	Short: "Update an ADR",
+// addCmd represents the add command
+var addCmd = &cobra.Command{
+	Use:   "add [flags] <record ID>",
+	Short: "Add tags or superseders into ADR",
 	Long: `
-Update an existing architecture decision record.
+Add tags or superseders to an existing architecture decision record.
 It will keep the content and only modify the metadata.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) <= 0 {
@@ -40,13 +38,18 @@ It will keep the content and only modify the metadata.`,
 			fmt.Println(Yellow("too many argument: keeping only the first record ID"))
 		}
 		recordID := args[0]
+		if len(add_tags) <= 0 && len(add_superseders) <= 0 {
+			fmt.Println(Red("invalid arguments: nothing to add to the record %q", recordID))
+			fmt.Println(cmd.UsageString())
+			os.Exit(1)
+		}
 		path, err := utils.RetrieveADRsPath()
 		if err != nil {
 			fmt.Println(Red("unable to retrieve ADRs path, you should look at the %s configuration file: %v", ConfigurationFile, err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		if err := updateRecord(path, recordID); err != nil {
+		if err := addToRecord(path, recordID); err != nil {
 			fmt.Println(Red("unable to update ADR %q: %v", recordID, err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
@@ -55,38 +58,24 @@ It will keep the content and only modify the metadata.`,
 }
 
 func init() {
-	updateCmd.Flags().StringVarP(
-		&update_author,
-		"author",
-		"a",
-		"",
-		"author of the record",
-	)
-	updateCmd.Flags().VarP(
-		&update_status,
-		"status",
-		"s",
-		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated", "superseded" or "observed"`,
-	)
-	updateCmd.RegisterFlagCompletionFunc("status", types.AdrStatusCompletion)
-	updateCmd.Flags().StringSliceVarP(
-		&update_tags,
+	addCmd.Flags().StringSliceVarP(
+		&add_tags,
 		"tags",
 		"t",
 		[]string{},
 		`tags of the record`,
 	)
-	updateCmd.Flags().StringSliceVarP(
-		&update_superseders,
+	addCmd.Flags().StringSliceVarP(
+		&add_superseders,
 		"superseders",
 		"r",
 		[]string{},
 		`superseders of the record`,
 	)
-	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(addCmd)
 }
 
-func updateRecord(path, recordID string) error {
+func addToRecord(path, recordID string) error {
 	adrs, err := utils.IndexADRs(path)
 	if err != nil {
 		return err
@@ -103,18 +92,11 @@ func updateRecord(path, recordID string) error {
 	if record == nil {
 		return errors.New("record not found")
 	}
-
-	if update_author != "" {
-		record.Author = update_author
+	if len(add_tags) > 0 {
+		record.Tags.Append(add_tags...)
 	}
-	if update_status != "" {
-		record.Status = update_status
-	}
-	if len(update_tags) > 0 {
-		record.Tags.Set(update_tags...)
-	}
-	if len(update_superseders) > 0 {
-		record.Superseders.Set(update_superseders...)
+	if len(add_superseders) > 0 {
+		record.Superseders.Append(add_superseders...)
 	}
 	record.LastUpdateDate = time.Now()
 
