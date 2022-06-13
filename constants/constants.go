@@ -4,6 +4,10 @@ import (
 	"github.com/jwalton/gchalk"
 )
 
+type Config struct {
+	Directory string `yaml:"directory"`
+}
+
 const (
 	ConfigurationFile = ".adrrc.yml"
 	DefaultUserName   = "Unknown"

@@ -4,21 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
-	"time"
 
-	. "github.com/gwleclerc/adr/constants"
-	"github.com/gwleclerc/adr/templates"
-	"github.com/gwleclerc/adr/types"
-	"github.com/gwleclerc/adr/utils"
+	cs "github.com/gwleclerc/adr/constants"
+	"github.com/gwleclerc/adr/records"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
 var (
 	update_author      string
-	update_status      types.AdrStatus
+	update_status      records.AdrStatus
 	update_tags        []string
 	update_superseders []string
 )
@@ -32,22 +27,22 @@ Update an existing architecture decision record.
 It will keep the content and only modify the metadata.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) <= 0 {
-			fmt.Printf("%s %s %s\n", Red("invalid argument: please specify a"), RedUnderline("record ID"), Red("as arguments"))
+			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("record ID"), cs.Red("as arguments"))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
 		if len(args) > 1 {
-			fmt.Println(Yellow("too many argument: keeping only the first record ID"))
+			fmt.Println(cs.Yellow("too many argument: keeping only the first record ID"))
 		}
 		recordID := args[0]
-		path, err := utils.RetrieveADRsPath()
+		service, err := records.NewService()
 		if err != nil {
-			fmt.Println(Red("unable to retrieve ADRs path, you should look at the %s configuration file: %v", ConfigurationFile, err))
+			fmt.Println(cs.Red("unable to initialize records service: %v", err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		if err := updateRecord(path, recordID); err != nil {
-			fmt.Println(Red("unable to update ADR %q: %v", recordID, err))
+		if err := updateRecord(service, recordID); err != nil {
+			fmt.Println(cs.Red("unable to update ADR %q: %v", recordID, err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
@@ -68,7 +63,7 @@ func init() {
 		"s",
 		`status of the record, allowed: "unknown", "proposed", "accepted", "deprecated", "superseded" or "observed"`,
 	)
-	updateCmd.RegisterFlagCompletionFunc("status", types.AdrStatusCompletion)
+	_ = updateCmd.RegisterFlagCompletionFunc("status", records.AdrStatusCompletion)
 	updateCmd.Flags().StringSliceVarP(
 		&update_tags,
 		"tags",
@@ -86,21 +81,9 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 }
 
-func updateRecord(path, recordID string) error {
-	adrs, err := utils.IndexADRs(path)
-	if err != nil {
-		return err
-	}
-
-	var record *types.AdrData
-	for i := range adrs {
-		adr := adrs[i]
-		if adr.ID == recordID {
-			record = &adr
-			break
-		}
-	}
-	if record == nil {
+func updateRecord(service *records.Service, recordID string) error {
+	record, ok := service.GetRecord(recordID)
+	if !ok {
 		return errors.New("record not found")
 	}
 
@@ -116,30 +99,16 @@ func updateRecord(path, recordID string) error {
 	if len(update_superseders) > 0 {
 		record.Superseders.Set(update_superseders...)
 	}
-	record.LastUpdateDate = time.Now()
 
-	b, err := types.MarshalYAML(record)
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(filepath.Join(path, record.Name))
-	if err != nil {
-		return err
-	}
-
-	err = templates.Templates[UpdateADRTemplate].Execute(file, map[string]any{
-		"Header": strings.Trim(string(b), "\n"),
-		"Body":   record.Body,
-	})
+	err := service.UpdateRecord(record)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println()
-	fmt.Println(Green("Record %q has been successfully updated:", record.ID))
+	fmt.Println(cs.Green("Record %q has been successfully updated:", record.ID))
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(TableHeader)
+	table.SetHeader(cs.TableHeader)
 	table.Append(record.ToRow())
 	table.Render()
 	fmt.Println()

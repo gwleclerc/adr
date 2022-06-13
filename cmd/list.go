@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	. "github.com/gwleclerc/adr/constants"
-	"github.com/gwleclerc/adr/utils"
+	cs "github.com/gwleclerc/adr/constants"
+	"github.com/gwleclerc/adr/records"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
@@ -24,17 +24,17 @@ var listCmd = &cobra.Command{
 	Long: fmt.Sprintf(
 		`
 List ADR files present in directory stored in %s configuration file.`,
-		ConfigurationFile,
+		cs.ConfigurationFile,
 	),
 	Run: func(cmd *cobra.Command, args []string) {
-		path, err := utils.RetrieveADRsPath()
+		service, err := records.NewService()
 		if err != nil {
-			fmt.Println(Red("unable to retrieve ADRs path, you should look at the %s configuration file: %v", ConfigurationFile, err))
+			fmt.Println(cs.Red("unable to initialize records service: %v", err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
-		if err := listRecords(path); err != nil {
-			fmt.Println(Red("unable to list ADRs in directory %q: %v", path, err))
+		if err := listRecords(service); err != nil {
+			fmt.Println(cs.Red("unable to list ADRs: %v", err))
 			fmt.Println(cmd.UsageString())
 			os.Exit(1)
 		}
@@ -66,14 +66,13 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 }
 
-func listRecords(path string) error {
-	adrs, err := utils.IndexADRs(path)
-	if err != nil {
-		return err
-	}
+func listRecords(service *records.Service) error {
+	adrs := service.GetRecords()
+
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(TableHeader)
+	table.SetHeader(cs.TableHeader)
 	data := [][]string{}
+
 	for _, adr := range adrs {
 		if len(list_authors) > 0 {
 			if !slices.Contains(list_authors, adr.Author) {
@@ -99,6 +98,7 @@ func listRecords(path string) error {
 		}
 		data = append(data, adr.ToRow())
 	}
+
 	table.AppendBulk(data)
 	fmt.Println()
 	table.Render()

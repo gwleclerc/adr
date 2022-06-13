@@ -1,4 +1,4 @@
-package utils
+package records
 
 import (
 	"bytes"
@@ -15,9 +15,8 @@ import (
 	"time"
 
 	"github.com/gernest/front"
-	. "github.com/gwleclerc/adr/constants"
-	"github.com/gwleclerc/adr/types"
-	"github.com/iancoleman/strcase"
+	cs "github.com/gwleclerc/adr/constants"
+	"github.com/gwleclerc/adr/utils"
 	"github.com/mitchellh/mapstructure"
 	"github.com/ojizero/gofindup"
 	"golang.org/x/sync/semaphore"
@@ -30,8 +29,8 @@ func init() {
 	matter.Handle("---", front.YAMLHandler)
 }
 
-func RetrieveADRsPath() (string, error) {
-	path, err := gofindup.Findup(ConfigurationFile)
+func retrieveADRsPath() (string, error) {
+	path, err := gofindup.Findup(cs.ConfigurationFile)
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +38,7 @@ func RetrieveADRsPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var config types.Config
+	var config cs.Config
 	err = yaml.Unmarshal(b, &config)
 	if err != nil {
 		return "", err
@@ -55,8 +54,8 @@ func RetrieveADRsPath() (string, error) {
 	return fullPath, nil
 }
 
-func IndexADRs(path string) ([]types.AdrData, error) {
-	res := []types.AdrData{}
+func indexADRs(path string) ([]AdrData, error) {
+	res := []AdrData{}
 
 	mu := sync.Mutex{}
 	sem := semaphore.NewWeighted(10)
@@ -78,7 +77,7 @@ func IndexADRs(path string) ([]types.AdrData, error) {
 	for _, f := range files {
 		err := sem.Acquire(ctx, 1)
 		if err != nil {
-			fmt.Println(Yellow("Unable to acquire semaphore: %s", err.Error()))
+			fmt.Println(cs.Yellow("Unable to acquire semaphore: %s", err.Error()))
 			continue
 		}
 		if f.IsDir() {
@@ -89,39 +88,40 @@ func IndexADRs(path string) ([]types.AdrData, error) {
 			defer wg.Done()
 			defer sem.Release(1)
 
-			adrData := types.AdrData{
+			adrData := AdrData{
 				Name: f.Name(),
 			}
 
 			filePath := filepath.Join(path, adrData.Name)
 			b, err := ioutil.ReadFile(filePath)
 			if err != nil {
-				fmt.Println(Yellow("Unable to read file %q: %s", filePath, err.Error()))
+				fmt.Println(cs.Yellow("Unable to read file %q: %s", filePath, err.Error()))
 				return
 			}
 
 			data, body, err := matter.Parse(bytes.NewReader(b))
 			if err != nil {
-				fmt.Println(Yellow("Unable to read yaml header from file %q: %s", filePath, err.Error()))
+				fmt.Println(cs.Yellow("Unable to read yaml header from file %q: %s", filePath, err.Error()))
 				return
 			}
 			adrData.Body = body
 
 			err = processDate(data, "creation_date", adrData.Name)
 			if err != nil {
-				fmt.Println(Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
+				fmt.Println(cs.Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
 				return
 			}
 			err = processDate(data, "last_update_date", adrData.Name)
 			if err != nil {
-				fmt.Println(Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
+				fmt.Println(cs.Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
 				return
 			}
 			processSet(data, "tags")
 			processSet(data, "superseders")
-			mapstructure.Decode(data, &adrData)
+
+			err = mapstructure.Decode(data, &adrData)
 			if err != nil {
-				fmt.Println(Yellow("Invalid yaml header: %s", filePath, err.Error()))
+				fmt.Println(cs.Yellow("Invalid yaml header: %s", filePath, err.Error()))
 				return
 			}
 
@@ -132,14 +132,12 @@ func IndexADRs(path string) ([]types.AdrData, error) {
 	}
 	wg.Wait()
 	sort.Slice(res, func(i, j int) bool {
-		return res[i].CreationDate.Before(res[j].CreationDate)
+		return res[i].Name < res[j].Name
 	})
 	return res, nil
 }
 
 func processDate(data map[string]any, dateKey, recordName string) error {
-	// We must convert the key to camel case because mapstructure does not process snake case keys correctly
-	destKey := strcase.ToCamel(dateKey)
 	// If the date is missing, we init it with the zero value "0001-01-01 00:00:00 +0000 UTC"
 	if data[dateKey] == nil {
 		data[dateKey] = new(time.Time)
@@ -148,9 +146,9 @@ func processDate(data map[string]any, dateKey, recordName string) error {
 	if ok {
 		// If data[dateKey] is a *time.Time it is necessarily the zero value
 		// so we arbitrary add the number of the record as days to keep records order
-		if number := GetRecordNumber(recordName); number != "" {
+		if number := utils.GetRecordNumber(recordName); number != "" {
 			num, _ := strconv.Atoi(number)
-			data[destKey] = dateTime.Add(time.Duration(num) * 24 * time.Hour)
+			data[dateKey] = dateTime.Add(time.Duration(num) * 24 * time.Hour)
 		}
 		return nil
 	}
@@ -160,7 +158,7 @@ func processDate(data map[string]any, dateKey, recordName string) error {
 	}
 
 	var err error
-	data[destKey], err = time.Parse(time.RFC3339, date)
+	data[dateKey], err = time.Parse(time.RFC3339, date)
 	if err != nil {
 		return err
 	}
@@ -177,7 +175,7 @@ func processSet(data map[string]any, key string) {
 	for _, elem := range unknown {
 		tmp = append(tmp, fmt.Sprintf("%v", elem))
 	}
-	set := make(types.Set[string], len(unknown))
+	set := make(Set[string], len(unknown))
 	set.Append(tmp...)
 	data[key] = set
 }

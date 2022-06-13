@@ -1,0 +1,79 @@
+version: '2'
+vars:
+  build: ../build
+testcases:
+  - name: Init ADR repository
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test init adrs --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'ADRs configuration has been successfully initialized at "adrs"'
+      - type: readfile
+        path: "{{.build}}/.adrrc.yml"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'directory: adrs'"
+      - type: readfile
+        path: "{{.build}}/adrs"
+        assertions:
+          - result.err ShouldContainSubstring 'is a directory'
+
+  - name: Create ADR without author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          echo "[user]\n\tname = Test User" > .gitconfig
+          export GIT_CONFIG=.gitconfig
+          ./adr.test new My first Record --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: Test User'"
+          - "result.content ShouldContainSubstring 'status: accepted'"
+          - "result.content ShouldContainSubstring '# My First Record'"
+
+  - name: Create ADR with author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new My Second Record -a User --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/002_my_second_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: User'"
+          - "result.content ShouldContainSubstring 'status: accepted'"
+          - "result.content ShouldContainSubstring '# My Second Record'"
+
+  - name: Create ADR with author status and tags
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new My Third Record -a User -s observed -t 'test1,test2' --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/003_my_third_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: User'"
+          - "result.content ShouldContainSubstring 'status: observed'"
+          - "result.content ShouldContainSubstring '- test1'"
+          - "result.content ShouldContainSubstring '- test2'"
+          - "result.content ShouldContainSubstring '# My Third Record'"
+
+

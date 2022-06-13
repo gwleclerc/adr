@@ -16,6 +16,10 @@ var Templates = map[string]*template.Template{}
 
 func init() {
 	err := fs.WalkDir(templates, ".", func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
 		// Skip non-templates.
 		if info.IsDir() || !strings.HasSuffix(path, ".tpl") {
 			return nil

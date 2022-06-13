@@ -1,4 +1,4 @@
-package types
+package records
 
 import (
 	"bytes"
@@ -8,15 +8,11 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	. "github.com/gwleclerc/adr/constants"
+	cs "github.com/gwleclerc/adr/constants"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/constraints"
 	"gopkg.in/yaml.v3"
 )
-
-type Config struct {
-	Directory string `yaml:"directory"`
-}
 
 // AdrStatus type
 type AdrStatus string
@@ -54,11 +50,11 @@ func (e *AdrStatus) Set(v string) error {
 func (e AdrStatus) Colorized() string {
 	switch e {
 	case PROPOSED:
-		return Yellow(e.String())
+		return cs.Yellow(e.String())
 	case ACCEPTED, OBSERVED:
-		return Green(e.String())
+		return cs.Green(e.String())
 	default:
-		return Grey(e.String())
+		return cs.Grey(e.String())
 	}
 }
 
@@ -84,8 +80,8 @@ type AdrData struct {
 	Title          string      `yaml:"title"`
 	Author         string      `yaml:"author"`
 	Status         AdrStatus   `yaml:"status"`
-	CreationDate   time.Time   `yaml:"creation_date"`
-	LastUpdateDate time.Time   `yaml:"last_update_date"`
+	CreationDate   time.Time   `yaml:"creation_date" mapstructure:"creation_date"`
+	LastUpdateDate time.Time   `yaml:"last_update_date" mapstructure:"last_update_date"`
 	Tags           Set[string] `yaml:"tags,omitempty"`
 	Superseders    Set[string] `yaml:"superseders,omitempty"`
 

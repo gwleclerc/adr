@@ -1,2 +1,3 @@
 .vscode
-adr
+build/*
+!build/.gitkeep

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	. "github.com/gwleclerc/adr/constants"
+	cs "github.com/gwleclerc/adr/constants"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 }
 
-var SilentErr = errors.New("SilentErr")
+var ErrSilent = errors.New("SilentErr")
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -32,7 +32,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.AddTemplateFunc("StyleHeading", Green)
+	cobra.AddTemplateFunc("StyleHeading", cs.Green)
 	usageTemplate := rootCmd.UsageTemplate()
 	usageTemplate = strings.NewReplacer(
 		`Usage:`, `{{StyleHeading "Usage:"}}`,
@@ -47,8 +47,8 @@ func init() {
 
 	rootCmd.SetUsageTemplate(usageTemplate)
 	rootCmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
-		fmt.Println(Red(err.Error()))
+		fmt.Println(cs.Red(err.Error()))
 		fmt.Println(cmd.UsageString())
-		return SilentErr
+		return ErrSilent
 	})
 }
