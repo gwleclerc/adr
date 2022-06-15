@@ -48,7 +48,7 @@ test:
 
 .PHONY: integration
 integration: $(VENOM) clean
-	go test -race -coverprofile=venom.cover.out -coverpkg="./..." -c . -o ./build/$(APPNAME).test
+	go test -race -tags=integration -coverprofile=venom.cover.out -coverpkg="./..." -c . -o ./build/$(APPNAME).test
 	$(VENOM) run -v --output-dir=build --format=xml tests/$(SUITE)
 
 .PHONY: coverage
