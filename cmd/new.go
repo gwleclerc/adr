@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"os/user"
 	"strings"
 
@@ -30,24 +29,22 @@ Create a new architecture decision record.
 It will be created in the directory defined in the nearest %s configuration file.`,
 		cs.ConfigurationFile,
 	),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		title := strings.TrimSpace(strings.Join(args, " "))
 		if title == "" {
-			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("title"), cs.Red("as arguments"))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("title"), cs.Red("in arguments"))
+			return ErrSilent
 		}
 		service, err := records.NewService()
 		if err != nil {
 			fmt.Println(cs.Red("unable to initialize records service: %v", err))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			return ErrSilent
 		}
 		if err := newRecord(service, title); err != nil {
 			fmt.Println(cs.Red("unable to create a new ADRs: %v", err))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			return ErrSilent
 		}
+		return nil
 	},
 }
 
@@ -99,8 +96,14 @@ func newRecord(service *records.Service, title string) error {
 		new_author = username
 	}
 
+	// Since IDs starting with '-' will be interpreted as CLI flags, we have to regenerate a new ID until this is no longer the case.
+	id := shortid.MustGenerate()
+	for strings.HasPrefix(id, "-") {
+		id = shortid.MustGenerate()
+	}
+
 	record := records.AdrData{
-		ID:     shortid.MustGenerate(),
+		ID:     id,
 		Status: new_status,
 		Author: new_author,
 		Tags:   make(records.Set[string]),

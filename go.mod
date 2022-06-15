@@ -6,7 +6,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gernest/front v0.0.0-20210301115436-8a0b0a782d0a
 	github.com/gosimple/slug v1.12.0
-	github.com/iancoleman/strcase v0.2.0
 	github.com/jwalton/gchalk v1.3.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ojizero/gofindup v1.1.3

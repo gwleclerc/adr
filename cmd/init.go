@@ -14,25 +14,23 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init [flags] <directory>",
 	Short: "Initialize ADRs configuration",
-	Long: fmt.Sprintf(
-		`
+	Long: fmt.Sprintf(`
 Initializes the ADR configuration with a base directory.
 This is a a prerequisite to running any other subcommand.
 The path to the base directory will be stored in a %s file.`,
 		cs.ConfigurationFile,
 	),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) <= 0 {
-			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("directory"), cs.Red("as first argument."))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("directory"), cs.Red("in arguments"))
+			return ErrSilent
 		}
 		path := filepath.Join(".", args[0])
 		if err := initConfiguration(path); err != nil {
 			fmt.Println(cs.Red("unable to init ADRs directory: %v", err))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			return ErrSilent
 		}
+		return nil
 	},
 }
 

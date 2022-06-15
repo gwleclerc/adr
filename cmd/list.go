@@ -26,18 +26,17 @@ var listCmd = &cobra.Command{
 List ADR files present in directory stored in %s configuration file.`,
 		cs.ConfigurationFile,
 	),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := records.NewService()
 		if err != nil {
 			fmt.Println(cs.Red("unable to initialize records service: %v", err))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			return ErrSilent
 		}
 		if err := listRecords(service); err != nil {
 			fmt.Println(cs.Red("unable to list ADRs: %v", err))
-			fmt.Println(cmd.UsageString())
-			os.Exit(1)
+			return ErrSilent
 		}
+		return nil
 	},
 }
 
@@ -57,7 +56,7 @@ func init() {
 		"filter records by status",
 	)
 	listCmd.Flags().StringSliceVarP(
-		&new_tags,
+		&list_tags,
 		"tags",
 		"t",
 		[]string{},

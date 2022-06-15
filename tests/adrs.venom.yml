@@ -2,7 +2,38 @@ version: '2'
 vars:
   build: ../build
 testcases:
-  - name: Init ADR repository
+  - name: Without command
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a command to execute'"
+
+  - name: Init ADR repository without directory
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test init --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a directory in arguments'"
+
+  - name: Init ADR repository with file
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          touch fail_init
+          ./adr.test init fail_init --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - 'result.systemout ShouldContainSubstring "unable to init ADRs directory: "fail_init" is not a directory"'
+ 
+  - name: Init ADR repository with directory
     steps:
       - type: exec
         script: |
@@ -21,59 +52,332 @@ testcases:
         assertions:
           - result.err ShouldContainSubstring 'is a directory'
 
-  - name: Create ADR without author
+  - name: Create ADR without name
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a title in arguments'"
+
+  - name: Create ADR without git author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          echo '' > .gitconfig
+          export GIT_CONFIG=.gitconfig
+          ./adr.test new My first Record --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+        vars:
+          ID:
+            from: result.systemout
+            regex: Record has been successfully created with ID "(.*)"
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldNotContainSubstring 'author: Test User'"
+          - "result.content ShouldNotContainSubstring 'author: Unknown'"
+          - "result.content ShouldContainSubstring 'status: accepted'"
+          - "result.content ShouldContainSubstring '# My First Record'"
+
+  - name: Create ADR with git author
     steps:
       - type: exec
         script: |
           cd {{.build}}
           echo "[user]\n\tname = Test User" > .gitconfig
           export GIT_CONFIG=.gitconfig
-          ./adr.test new My first Record --test.coverprofile {{.venom.testcase}}.cover.out
+          ./adr.test new My second Record --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
           - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
-      - type: readfile
-        path: "{{.build}}/adrs/001_my_first_record.md"
-        assertions:
-          - result.err ShouldBeEmpty
-          - "result.content ShouldContainSubstring 'author: Test User'"
-          - "result.content ShouldContainSubstring 'status: accepted'"
-          - "result.content ShouldContainSubstring '# My First Record'"
-
-  - name: Create ADR with author
-    steps:
-      - type: exec
-        script: |
-          cd {{.build}}
-          ./adr.test new My Second Record -a User --test.coverprofile {{.venom.testcase}}.cover.out
-        assertions:
-          - result.code ShouldEqual 0
-          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+        vars:
+          ID:
+            from: result.systemout
+            regex: Record has been successfully created with ID "(.*)"
       - type: readfile
         path: "{{.build}}/adrs/002_my_second_record.md"
         assertions:
           - result.err ShouldBeEmpty
-          - "result.content ShouldContainSubstring 'author: User'"
+          - "result.content ShouldContainSubstring 'author: Test User'"
           - "result.content ShouldContainSubstring 'status: accepted'"
           - "result.content ShouldContainSubstring '# My Second Record'"
+
+  - name: Create ADR with specified author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new My third Record -a User --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+        vars:
+          ID:
+            from: result.systemout
+            regex: Record has been successfully created with ID "(.*)"
+      - type: readfile
+        path: "{{.build}}/adrs/003_my_third_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: User'"
+          - "result.content ShouldContainSubstring 'status: accepted'"
+          - "result.content ShouldContainSubstring '# My Third Record'"
 
   - name: Create ADR with author status and tags
     steps:
       - type: exec
         script: |
           cd {{.build}}
-          ./adr.test new My Third Record -a User -s observed -t 'test1,test2' --test.coverprofile {{.venom.testcase}}.cover.out
+          ./adr.test new My fourth Record -a User -s observed -t 'test1,test2' --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
           - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+        vars:
+          ID:
+            from: result.systemout
+            regex: Record has been successfully created with ID "(.*)"
       - type: readfile
-        path: "{{.build}}/adrs/003_my_third_record.md"
+        path: "{{.build}}/adrs/004_my_fourth_record.md"
         assertions:
           - result.err ShouldBeEmpty
           - "result.content ShouldContainSubstring 'author: User'"
           - "result.content ShouldContainSubstring 'status: observed'"
+          - "result.content ShouldContainSubstring 'tags:'"
           - "result.content ShouldContainSubstring '- test1'"
           - "result.content ShouldContainSubstring '- test2'"
-          - "result.content ShouldContainSubstring '# My Third Record'"
+          - "result.content ShouldContainSubstring '# My Fourth Record'"
 
+  - name: Create ADR with author and supersedes
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new My fifth Record -a User -r {{.Create-ADR-without-git-author.ID}} -t test --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+        vars:
+          ID:
+            from: result.systemout
+            regex: Record has been successfully created with ID "(.*)"
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'status: superseded'"
+          - "result.content ShouldContainSubstring 'superseders:'"
+          - "result.content ShouldContainSubstring '- {{.Create-ADR-with-author-and-supersedes.ID}}'"
+      - type: readfile
+        path: "{{.build}}/adrs/005_my_fifth_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: User'"
+          - "result.content ShouldContainSubstring 'status: accepted'"
+          - "result.content ShouldContainSubstring 'tags:'"
+          - "result.content ShouldContainSubstring '- test'"
+          - "result.content ShouldContainSubstring '# My Fifth Record'"
 
+  - name: Update last ADR without record ID
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test update --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
+
+  - name: Update last ADR without flags
+    steps:
+      - type: readfile
+        path: "{{.build}}/adrs/005_my_fifth_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+        vars:
+          LastUpdate:
+            from: result.content
+            regex: "last_update_date: (.*)"
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test update "{{.Create-ADR-with-author-and-supersedes.ID}}" --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/005_my_fifth_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldNotContainSubstring 'last_update_date: {{.Update-last-ADR-without-flags.LastUpdate}}'"
+          - "result.content ShouldContainSubstring 'tags:'"
+
+  - name: Update last ADR with tags, status and author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test update {{.Create-ADR-with-author-and-supersedes.ID}} \
+            -a Test \
+            -s observed \
+            -t test1,test2 \
+            --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/005_my_fifth_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: Test'"
+          - "result.content ShouldContainSubstring 'status: observed'"
+          - "result.content ShouldContainSubstring 'tags:'"
+          - "result.content ShouldContainSubstring '- test1'"
+          - "result.content ShouldContainSubstring '- test2'"
+
+  - name: Update first ADR to remove superseders
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test update {{.Create-ADR-without-git-author.ID}} \
+            --superseders= \
+            --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldNotContainSubstring 'superseders:'"
+
+  - name: Add without record ID
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test add --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
+
+  - name: Add nothing to the last ADR
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test add {{.Create-ADR-with-author-and-supersedes.ID}} --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemout ShouldContainSubstring 'invalid arguments: nothing to add to the record'"
+
+  - name: Add superseders to first ADR
+    steps:
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+        vars:
+          LastUpdate:
+            from: result.content
+            regex: "last_update_date: (.*)"
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test add {{.Create-ADR-without-git-author.ID}} \
+            -r {{.Create-ADR-with-author-and-supersedes.ID}} \
+            --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/001_my_first_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'superseders:'"
+          - "result.content ShouldContainSubstring '- {{.Create-ADR-with-author-and-supersedes.ID}}'"
+          - "result.content ShouldNotContainSubstring 'last_update_date: {{.Add-superseders-to-first-ADR.LastUpdate}}"
+
+  - name: Add tags to last ADR
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test add {{.Create-ADR-with-author-and-supersedes.ID}} \
+            -t test3,test4  \
+            --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/005_my_fifth_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'tags:'"
+          - "result.content ShouldContainSubstring '- test1'"
+          - "result.content ShouldContainSubstring '- test2'"
+          - "result.content ShouldContainSubstring '- test3'"
+          - "result.content ShouldContainSubstring '- test4'"
+
+  - name: List ADRs
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test list --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+
+  - name: List ADRs with tags
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test list -t test1,test2 --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+
+  - name: List ADRs with author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test list -a User --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+
+  - name: List ADRs with status
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test list -s accepted --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'

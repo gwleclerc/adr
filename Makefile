@@ -59,5 +59,5 @@ coverage: $(GOCOVMERGE)
 .PHONY: clean
 clean:
 	mv ./build/.gitkeep /tmp/.gitkeep
-	rm -rf ./build/*
+	rm -rf ./build/* ./build/.gitconfig ./build/.adrrc.yml
 	mv /tmp/.gitkeep ./build/.gitkeep
