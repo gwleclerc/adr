@@ -30,7 +30,7 @@ It will create a `.adrrc.yml` configuration file with the directory path inside.
 You can create a new record with the following command:
 
 ```bash
-adr new decisive decision of articheture
+adr new decisive decision of architecture
 ```
 
 You can also add flags to set record's metadata:
@@ -49,7 +49,7 @@ Flags:
   -t, --tags strings    tags of the record
 ```
 
-It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_articheture.md`.
+It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_architecture.md`.
 
 Then you will be have to open the file in your preferred editor and starting editing the ADR.
 
@@ -81,9 +81,9 @@ Flags:
 This will display the records as a table.
 
 ```bash
-+-----------+----------------------------------+----------+-----------------+-------------+--------------+
-|    ID     |              TITLE               |  STATUS  |     AUTHOR      |    DATE     |     TAGS     |
-+-----------+----------------------------------+----------+-----------------+-------------+--------------+
-| zl3cUj97R | decisive_decision_of_articheture | accepted | Gwendal Leclerc | 2 hours ago | architecture |
-+-----------+----------------------------------+----------+-----------------+-------------+--------------+
++-----------+-----------------------------------+----------+-----------------+-------------+--------------+
+|    ID     |              TITLE                |  STATUS  |     AUTHOR      |    DATE     |     TAGS     |
++-----------+-----------------------------------+----------+-----------------+-------------+--------------+
+| zl3cUj97R | decisive_decision_of_architecture | accepted | Gwendal Leclerc | 2 hours ago | architecture |
++-----------+-----------------------------------+----------+-----------------+-------------+--------------+
 ```
