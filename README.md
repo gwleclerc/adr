@@ -73,6 +73,8 @@ OPTIONS:
    --supersedes string, -r string  record ids superseded by this one
    --template string                body template name (see `adr template list`) (default: "bare")
    --body-file string               read the record body from a file (or - for stdin) instead of the template
+   --edit                           open the created record in $EDITOR
+   --json                           print the created record as JSON
    --help, -h                      show help
 ```
 
@@ -199,6 +201,10 @@ adr show <record ID> --json   # print its metadata as JSON
 adr edit <record ID>          # open it in $EDITOR (or $VISUAL, or vi)
 adr new "..." --edit          # create then open in your editor
 ```
+
+`--json` is available on every command that produces machine-readable output —
+`new`, `add`, `update`, `list`, `show`, and `template list` / `template show` — for
+scripting and agent use (`template show --json` also returns the section `headings`).
 
 ## Configuration
 

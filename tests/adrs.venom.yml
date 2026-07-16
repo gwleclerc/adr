@@ -538,3 +538,28 @@ testcases:
           - result.err ShouldBeEmpty
           - "result.content ShouldContainSubstring 'author: Bot'"
           - "result.content ShouldContainSubstring '## Considered Options'"
+
+  - name: JSON outputs
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new Json record --json --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'creation_date'
+          - result.systemout ShouldContainSubstring '010_json_record.md'
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test template list --json --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'builtin'
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test template show madr --json --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'headings'

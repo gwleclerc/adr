@@ -3,12 +3,8 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 
-	cs "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/records"
-	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v3"
 )
 
@@ -29,6 +25,10 @@ It will keep the content and only modify the metadata.`,
 				Name:    "superseders",
 				Aliases: []string{"r"},
 				Usage:   "superseders of the record",
+			},
+			&cli.BoolFlag{
+				Name:  "json",
+				Usage: "print the updated record as JSON",
 			},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
@@ -51,8 +51,13 @@ It will keep the content and only modify the metadata.`,
 				printError("unable to initialize records service: %v", err)
 				return errSilent
 			}
-			if err := addToRecord(service, recordID, tags, superseders); err != nil {
+			record, err := addToRecord(service, recordID, tags, superseders)
+			if err != nil {
 				printError("unable to update ADR %q: %v", recordID, err)
+				return errSilent
+			}
+			if err := reportRecord(record, cmd.Bool("json")); err != nil {
+				printError("unable to encode record: %v", err)
 				return errSilent
 			}
 			return nil
@@ -60,10 +65,10 @@ It will keep the content and only modify the metadata.`,
 	}
 }
 
-func addToRecord(service *records.Service, recordID string, tags, superseders []string) error {
+func addToRecord(service *records.Service, recordID string, tags, superseders []string) (records.AdrData, error) {
 	record, ok := service.GetRecord(recordID)
 	if !ok {
-		return errors.New("record not found")
+		return records.AdrData{}, errors.New("record not found")
 	}
 	if len(tags) > 0 {
 		record.Tags.Append(tags...)
@@ -75,14 +80,7 @@ func addToRecord(service *records.Service, recordID string, tags, superseders []
 		record.Status = records.SUPERSEDED
 	}
 	if err := service.UpdateRecord(record); err != nil {
-		return err
+		return records.AdrData{}, err
 	}
-	fmt.Println()
-	fmt.Println(cs.Green("Record %q has been successfully updated:", record.ID))
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(cs.TableHeader)
-	table.Append(record.ToRow())
-	table.Render()
-	fmt.Println()
-	return nil
+	return record, nil
 }

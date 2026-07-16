@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -55,7 +54,7 @@ func listCommand() *cli.Command {
 			}
 			adrs := filterRecords(service.GetRecords(), filters)
 			if cmd.Bool("json") {
-				if err := renderJSON(adrs); err != nil {
+				if err := printJSON(adrs); err != nil {
 					printError("unable to encode records: %v", err)
 					return errSilent
 				}
@@ -97,15 +96,6 @@ func filterRecords(adrs []records.AdrData, filters listFilters) []records.AdrDat
 		out = append(out, adr)
 	}
 	return out
-}
-
-func renderJSON(adrs []records.AdrData) error {
-	b, err := json.MarshalIndent(adrs, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(b))
-	return nil
 }
 
 func renderTable(adrs []records.AdrData) {

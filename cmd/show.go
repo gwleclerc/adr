@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -38,12 +37,10 @@ func showCommand() *cli.Command {
 			}
 
 			if cmd.Bool("json") {
-				b, err := json.MarshalIndent(record, "", "  ")
-				if err != nil {
+				if err := printJSON(record); err != nil {
 					printError("unable to encode record: %v", err)
 					return errSilent
 				}
-				fmt.Println(string(b))
 				return nil
 			}
 

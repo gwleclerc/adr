@@ -97,7 +97,7 @@ func (s Service) GetRecords() []AdrData {
 // CreateRecord writes a new record file. body is the markdown of the sections
 // (a template skeleton or a caller-provided, already-validated body); the record
 // envelope (front-matter, title and date) is added here.
-func (s Service) CreateRecord(title string, record AdrData, body string) (string, error) {
+func (s Service) CreateRecord(title string, record AdrData, body string) (AdrData, error) {
 	prefix := fmt.Sprintf("%03d", 1)
 	for i := range s.ids {
 		recordID := s.ids[len(s.ids)-1-i]
@@ -119,19 +119,20 @@ func (s Service) CreateRecord(title string, record AdrData, body string) (string
 	record.Title = title
 	record.CreationDate = date
 	record.LastUpdateDate = date
+	record.Name = filename
 
 	header, err := MarshalYAML(record)
 	if err != nil {
-		return "", err
+		return AdrData{}, err
 	}
 
 	fullBody := fmt.Sprintf("# %s\n\nDate: %s\n\n%s",
 		title, date.Format(time.RFC1123), strings.TrimRight(body, "\n"))
 
 	if err := s.writeRecord(filename, string(header), fullBody); err != nil {
-		return "", err
+		return AdrData{}, err
 	}
-	return filepath.Join(s.adrsPath, filename), nil
+	return record, nil
 }
 
 func (s Service) UpdateRecord(record AdrData) error {

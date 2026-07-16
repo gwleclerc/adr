@@ -127,14 +127,17 @@ same name). When a project ships custom templates, prefer them over `madr`.
 
 ## CLI reference
 
+Every command that emits records or templates accepts **`--json`** — always use it when
+acting programmatically, so you parse structured data instead of scraping tables/messages.
+
 | Command | Purpose |
 |---|---|
-| `adr new <title> [--template <name>] [--body-file <f\|->] [-s] [-a] [-t] [-r]` | create a record (prints its ID); `--body-file` supplies a validated body, else the template is scaffolded |
-| `adr template list` / `adr template show <name>` | discover templates / print a template's section contract |
-| `adr list [-a] [-s] [-t] [--json]` | list/filter records (filters are AND across types); **use `--json`** to parse records reliably |
-| `adr show <id> [--json]` | print one record (raw file, or metadata as JSON with `--json`) |
-| `adr update <id> [-a] [-s] [-t] [-r]` | change metadata; only passed flags change; `--tags=` clears |
-| `adr add <id> [-t] [-r]` | append tags/superseders (adding superseders marks the record `superseded`) |
+| `adr new <title> [--template <name>] [--body-file <f\|->] [-s] [-a] [-t] [-r] [--json]` | create a record; `--json` returns it (id, file, …) instead of scraping the message |
+| `adr template list [--json]` / `adr template show <name> [--json]` | discover templates / print a template's contract (`show --json` includes the section `headings`) |
+| `adr list [-a] [-s] [-t] [--json]` | list/filter records (filters are AND across types) |
+| `adr show <id> [--json]` | print one record (raw file, or metadata as JSON) |
+| `adr update <id> [-a] [-s] [-t] [-r] [--json]` | change metadata; only passed flags change; `--tags=` clears |
+| `adr add <id> [-t] [-r] [--json]` | append tags/superseders (adding superseders marks the record `superseded`) |
 
 - Statuses: `unknown`, `proposed`, `accepted`, `deprecated`, `superseded`, `observed`
   (`observed` is a CLI extension for retrospective records; not part of MADR/Nygard).

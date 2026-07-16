@@ -23,6 +23,7 @@ type newRecordOptions struct {
 	supersedes []string
 	body       string
 	edit       bool
+	json       bool
 }
 
 func newCommand() *cli.Command {
@@ -68,6 +69,10 @@ It will be created in the directory defined in the nearest %s configuration file
 			&cli.BoolFlag{
 				Name:  "edit",
 				Usage: "open the created record in $EDITOR",
+			},
+			&cli.BoolFlag{
+				Name:  "json",
+				Usage: "print the created record as JSON",
 			},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
@@ -126,6 +131,7 @@ It will be created in the directory defined in the nearest %s configuration file
 				supersedes: splitCSV(cmd.StringSlice("supersedes")),
 				body:       body,
 				edit:       cmd.Bool("edit"),
+				json:       cmd.Bool("json"),
 			}
 			if err := newRecord(service, title, opts); err != nil {
 				printError("unable to create a new ADR: %v", err)
@@ -167,20 +173,25 @@ func newRecord(service *records.Service, title string, opts newRecordOptions) er
 	}
 	record.Tags.Append(opts.tags...)
 
-	path, err := service.CreateRecord(title, record, opts.body)
+	created, err := service.CreateRecord(title, record, opts.body)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println()
-	fmt.Println(cs.Green("Record has been successfully created with ID %q", record.ID))
+	markSuperseded(service, created.ID, opts.supersedes)
 
-	markSuperseded(service, record.ID, opts.supersedes)
-
-	fmt.Println()
+	if opts.json {
+		if err := printJSON(created); err != nil {
+			return err
+		}
+	} else {
+		fmt.Println()
+		fmt.Println(cs.Green("Record has been successfully created with ID %q", created.ID))
+		fmt.Println()
+	}
 
 	if opts.edit {
-		return openEditor(path)
+		return openEditor(service.RecordPath(created))
 	}
 	return nil
 }

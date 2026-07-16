@@ -24,11 +24,25 @@ Custom templates are picked up from the "templates_dir" declared in the nearest
 			{
 				Name:  "list",
 				Usage: "List the available templates",
-				Action: func(_ context.Context, _ *cli.Command) error {
+				Flags: []cli.Flag{
+					&cli.BoolFlag{Name: "json", Usage: "output templates as JSON"},
+				},
+				Action: func(_ context.Context, cmd *cli.Command) error {
 					reg, err := loadTemplates()
 					if err != nil {
 						printError("unable to load templates: %v", err)
 						return errSilent
+					}
+					if cmd.Bool("json") {
+						infos := make([]templateInfo, 0, len(reg))
+						for _, name := range templates.Names(reg) {
+							infos = append(infos, templateInfo{Name: name, Builtin: reg[name].Builtin})
+						}
+						if err := printJSON(infos); err != nil {
+							printError("unable to encode templates: %v", err)
+							return errSilent
+						}
+						return nil
 					}
 					for _, name := range templates.Names(reg) {
 						source := "custom"
@@ -44,6 +58,9 @@ Custom templates are picked up from the "templates_dir" declared in the nearest
 				Name:      "show",
 				Usage:     "Print a template's sections and guidance",
 				ArgsUsage: "<template name>",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{Name: "json", Usage: "output the template (with its headings) as JSON"},
+				},
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					if cmd.Args().Len() == 0 {
 						missingArgument("template name")
@@ -60,6 +77,19 @@ Custom templates are picked up from the "templates_dir" declared in the nearest
 						printError("unknown template %q: available: %s", name, strings.Join(templates.Names(reg), ", "))
 						return errSilent
 					}
+					if cmd.Bool("json") {
+						detail := templateDetail{
+							Name:     name,
+							Builtin:  tpl.Builtin,
+							Headings: templates.Headings(tpl.Body),
+							Body:     tpl.Body,
+						}
+						if err := printJSON(detail); err != nil {
+							printError("unable to encode template: %v", err)
+							return errSilent
+						}
+						return nil
+					}
 					fmt.Print(tpl.Body)
 					return nil
 				},
@@ -70,6 +100,18 @@ Custom templates are picked up from the "templates_dir" declared in the nearest
 			return cmd.Command("list").Run(ctx, []string{"list"})
 		},
 	}
+}
+
+type templateInfo struct {
+	Name    string `json:"name"`
+	Builtin bool   `json:"builtin"`
+}
+
+type templateDetail struct {
+	Name     string   `json:"name"`
+	Builtin  bool     `json:"builtin"`
+	Headings []string `json:"headings"`
+	Body     string   `json:"body"`
 }
 
 // loadTemplates loads the template registry, tolerating a missing config so the
