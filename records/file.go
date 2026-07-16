@@ -91,11 +91,11 @@ func parseADR(dir, name string) (AdrData, bool) {
 	}
 	adrData.Body = body
 
-	if err := processDate(data, "creation_date", name); err != nil {
+	if err := processDate(data, "creation_date"); err != nil {
 		fmt.Fprintln(os.Stderr, cs.Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
 		return AdrData{}, false
 	}
-	if err := processDate(data, "last_update_date", name); err != nil {
+	if err := processDate(data, "last_update_date"); err != nil {
 		fmt.Fprintln(os.Stderr, cs.Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
 		return AdrData{}, false
 	}
@@ -109,30 +109,25 @@ func parseADR(dir, name string) (AdrData, bool) {
 	return adrData, true
 }
 
-func processDate(data map[string]any, dateKey, recordName string) error {
-	// If the date is missing, we init it with the zero value "0001-01-01 00:00:00 +0000 UTC"
-	if data[dateKey] == nil {
-		data[dateKey] = new(time.Time)
-	}
-	dateTime, ok := data[dateKey].(*time.Time)
-	if ok {
-		// If data[dateKey] is a *time.Time it is necessarily the zero value
-		// so we arbitrary add the number of the record as days to keep records order
-		if number := utils.GetRecordNumber(recordName); number != "" {
-			num, _ := strconv.Atoi(number)
-			data[dateKey] = dateTime.Add(time.Duration(num) * 24 * time.Hour)
+// processDate normalizes a front-matter date into a time.Time. A missing date
+// becomes the zero value (rendered as "-" in listings); a string is parsed as
+// RFC3339. Records are ordered by their numeric prefix, so no date is fabricated.
+func processDate(data map[string]any, dateKey string) error {
+	switch v := data[dateKey].(type) {
+	case nil:
+		data[dateKey] = time.Time{}
+	case time.Time:
+		// already parsed by the YAML front-matter handler
+	case *time.Time:
+		data[dateKey] = *v
+	case string:
+		t, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return err
 		}
-		return nil
-	}
-	date, ok := data[dateKey].(string)
-	if !ok {
+		data[dateKey] = t
+	default:
 		return errors.New("invalid date value")
-	}
-
-	var err error
-	data[dateKey], err = time.Parse(time.RFC3339, date)
-	if err != nil {
-		return err
 	}
 	return nil
 }

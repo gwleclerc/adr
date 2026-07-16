@@ -110,11 +110,19 @@ func (a AdrData) ToRow() []string {
 		a.Title,
 		a.Status.Colorized(),
 		a.Author,
-		humanize.Time(a.CreationDate),
-		humanize.Time(a.LastUpdateDate),
+		humanizeTime(a.CreationDate),
+		humanizeTime(a.LastUpdateDate),
 		strings.Join(a.Superseders.ToSlice(), ", "),
 		strings.Join(a.Tags.ToSlice(), ", "),
 	}
+}
+
+// humanizeTime renders a time relatively (e.g. "2 hours ago"), or "-" when unset.
+func humanizeTime(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+	return humanize.Time(t)
 }
 
 type Set[T cmp.Ordered] map[T]bool
