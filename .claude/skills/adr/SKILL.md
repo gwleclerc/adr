@@ -1,21 +1,34 @@
 ---
 name: adr
 description: >-
-  Capture and retro-document architecture decisions as structured ADRs using the
-  `adr` CLI. Trigger proactively when a non-trivial technical decision is made in a
-  session (choosing a library, pattern, protocol, data model, trade-off, or reversing
-  an earlier decision); when the user asks to record/document a decision or mentions
-  "ADR"; and when the user wants to retro-document the decisions embodied in an
-  existing/legacy repository (see Mode B, also reachable via the /adr command). The CLI
-  stays a light scaffolder; this skill supplies the MADR-lite structure and workflow.
+  Use this to record architecture/design decisions as structured ADRs with the `adr`
+  CLI. Trigger it when a non-trivial decision is made in a session (a library, pattern,
+  protocol, data model, trade-off, or reversal), right after a design is finalized
+  (e.g. once a brainstorming/planning skill concludes), when the user asks to
+  document/record a decision or mentions "ADR", when capturing the decision behind the
+  changes just made, or when retro-documenting an inherited/legacy codebase. Also
+  reachable via the /adr command.
 ---
 
-# Authoring ADRs with the `adr` CLI
+# Recording architecture decisions with the `adr` CLI
 
-`adr` is a lightweight scaffolder: it handles numbering, metadata and the file, and
-nothing else. The *structure and rigor* live here, in the workflow. The goal is
-MADR-quality records (context, options, decision, consequences) without full-MADR
-ceremony.
+`adr` is a lightweight scaffolder: numbering, metadata, files — nothing else. The
+*methodology lives here*: **this skill is the single source of truth**, and the `/adr`
+command is a thin entry point that just invokes it. Goal: MADR-quality records
+(context, options, decision, consequences) without full-MADR ceremony.
+
+## Working with other skills
+
+This skill captures **what was decided and why** — it is a *downstream* step, not a
+substitute for design work:
+
+- When a `brainstorming`, `writing-plans`, or similar design skill is available and a
+  design has just been finalized through it, record the outcome here instead of
+  re-running the design dialogue.
+- Only trigger once a decision actually exists — a choice settled in-session, an
+  approved design, or a change about to land. Never before the decision is settled.
+- This skill references other skills by name and never the reverse; the `/adr` command
+  delegates here and carries no methodology of its own.
 
 ## Two modes
 
@@ -25,8 +38,9 @@ ceremony.
 - **Mode B — retro-document an existing repository**: sweep a codebase you're taking
   over and emit several *condensed* `observed` ADRs.
 
-The `/adr` command routes across these based on intent: "record the modifications we
-just made" → Mode A from the diff; "document this repo" → Mode B.
+Pick the mode from intent: "record the decision we just made" / "document these changes"
+→ Mode A (from the session or the diff); "document/retro-document this repo" → Mode B.
+If it is genuinely unclear which mode applies, ask before proceeding.
 
 ## Prerequisites
 
@@ -58,7 +72,7 @@ choices (variable names, one-off refactors).
    or empty, so there is no scaffold-then-overwrite step. (Omit `--body-file` to instead
    scaffold the empty template for a human to fill.)
 
-## Mode B — retro-document an existing repository (`/adr`)
+## Mode B — retro-document an existing repository
 
 Goal: capture the significant decisions **already embodied** in a codebase you did not
 author, as several **condensed** `observed` ADRs — asking the user *why* when the

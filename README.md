@@ -254,10 +254,13 @@ This repo ships a Claude Code skill (`.claude/skills/adr`) and an `/adr` command
 (`.claude/commands/adr.md`). Run `make install-claude` to symlink them into `~/.claude`
 so they're available in every repo (the source stays versioned here).
 
-- The **skill** teaches Claude to author structured ADRs with this CLI, and triggers
-  proactively when a decision is made in a session.
-- The **`/adr` command** records decisions on demand and routes by intent: capture the
-  decision(s) behind the changes just made (from the diff, as `accepted`), document a
-  specific decision, or sweep a codebase you're taking over and retro-document it as
-  several condensed `observed` ADRs. It never invents rationale — it asks you about the
-  *why* whenever it's ambiguous.
+- The **skill** is the single source of truth for the workflow. It triggers when a
+  decision is made in a session (or right after a design/planning skill concludes) and
+  drives the whole process: capturing the decision behind recent changes (from the diff,
+  as `accepted`), documenting a specific decision, or retro-documenting an inherited
+  repo as several condensed `observed` ADRs. It never invents rationale — it asks about
+  the *why* whenever it's ambiguous — and it composes with design skills (e.g. a
+  `brainstorming`/`writing-plans` flow hands off here to record the outcome).
+- The **`/adr` command** is a thin entry point that simply delegates to the skill, for
+  when you want to trigger it explicitly. All the methodology lives in the skill; the
+  command carries none of its own.
