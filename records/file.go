@@ -2,14 +2,14 @@ package records
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -34,7 +34,7 @@ func retrieveADRsPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
@@ -68,52 +68,53 @@ func indexADRs(path string) ([]AdrData, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("%q should be a directory", path)
 	}
-	files, err := ioutil.ReadDir(path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := context.Background()
-	for _, f := range files {
-		err := sem.Acquire(ctx, 1)
-		if err != nil {
-			fmt.Println(cs.Yellow("Unable to acquire semaphore: %s", err.Error()))
+	for _, entry := range entries {
+		// Skip directories before acquiring a semaphore permit, otherwise the
+		// permit would leak (it is only released by the goroutine below).
+		if entry.IsDir() {
 			continue
 		}
-		if f.IsDir() {
+		if err := sem.Acquire(ctx, 1); err != nil {
+			fmt.Fprintln(os.Stderr, cs.Yellow("Unable to acquire semaphore: %s", err.Error()))
 			continue
 		}
 		wg.Add(1)
-		go func(f fs.FileInfo) {
+		go func(entry fs.DirEntry) {
 			defer wg.Done()
 			defer sem.Release(1)
 
 			adrData := AdrData{
-				Name: f.Name(),
+				Name: entry.Name(),
 			}
 
 			filePath := filepath.Join(path, adrData.Name)
-			b, err := ioutil.ReadFile(filePath)
+			b, err := os.ReadFile(filePath)
 			if err != nil {
-				fmt.Println(cs.Yellow("Unable to read file %q: %s", filePath, err.Error()))
+				fmt.Fprintln(os.Stderr, cs.Yellow("Unable to read file %q: %s", filePath, err.Error()))
 				return
 			}
 
 			data, body, err := matter.Parse(bytes.NewReader(b))
 			if err != nil {
-				fmt.Println(cs.Yellow("Unable to read yaml header from file %q: %s", filePath, err.Error()))
+				fmt.Fprintln(os.Stderr, cs.Yellow("Unable to read yaml header from file %q: %s", filePath, err.Error()))
 				return
 			}
 			adrData.Body = body
 
 			err = processDate(data, "creation_date", adrData.Name)
 			if err != nil {
-				fmt.Println(cs.Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
+				fmt.Fprintln(os.Stderr, cs.Yellow("Invalid creation date in yaml header from file %q: %v", filePath, err))
 				return
 			}
 			err = processDate(data, "last_update_date", adrData.Name)
 			if err != nil {
-				fmt.Println(cs.Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
+				fmt.Fprintln(os.Stderr, cs.Yellow("Invalid last update date in yaml header from file %q: %v", filePath, err))
 				return
 			}
 			processSet(data, "tags")
@@ -121,18 +122,18 @@ func indexADRs(path string) ([]AdrData, error) {
 
 			err = mapstructure.Decode(data, &adrData)
 			if err != nil {
-				fmt.Println(cs.Yellow("Invalid yaml header: %s", filePath, err.Error()))
+				fmt.Fprintln(os.Stderr, cs.Yellow("Invalid yaml header in file %q: %v", filePath, err))
 				return
 			}
 
 			mu.Lock()
 			defer mu.Unlock()
 			res = append(res, adrData)
-		}(f)
+		}(entry)
 	}
 	wg.Wait()
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Name < res[j].Name
+	slices.SortFunc(res, func(a, b AdrData) int {
+		return cmp.Compare(a.Name, b.Name)
 	})
 	return res, nil
 }

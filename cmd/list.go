@@ -1,71 +1,69 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"slices"
 
 	cs "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/records"
 	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
-	"golang.org/x/exp/slices"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	list_authors []string
-	list_tags    []string
-	list_status  []string
-)
-
-// listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:   "list [flags]",
-	Short: "List ADR files",
-	Long: fmt.Sprintf(
-		`
-List ADR files present in directory stored in %s configuration file.`,
-		cs.ConfigurationFile,
-	),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		service, err := records.NewService()
-		if err != nil {
-			fmt.Println(cs.Red("unable to initialize records service: %v", err))
-			return ErrSilent
-		}
-		if err := listRecords(service); err != nil {
-			fmt.Println(cs.Red("unable to list ADRs: %v", err))
-			return ErrSilent
-		}
-		return nil
-	},
+func listCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "list",
+		Usage: "List ADR files",
+		Description: fmt.Sprintf(
+			"List ADR files present in directory stored in %s configuration file.",
+			cs.ConfigurationFile,
+		),
+		Flags: []cli.Flag{
+			&cli.StringSliceFlag{
+				Name:    "authors",
+				Aliases: []string{"a"},
+				Usage:   "filter records by authors",
+			},
+			&cli.StringSliceFlag{
+				Name:    "status",
+				Aliases: []string{"s"},
+				Usage:   "filter records by status",
+			},
+			&cli.StringSliceFlag{
+				Name:    "tags",
+				Aliases: []string{"t"},
+				Usage:   "filter records by tags",
+			},
+		},
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			service, err := records.NewService()
+			if err != nil {
+				printError("unable to initialize records service: %v", err)
+				return errSilent
+			}
+			filters := listFilters{
+				authors: splitCSV(cmd.StringSlice("authors")),
+				status:  splitCSV(cmd.StringSlice("status")),
+				tags:    splitCSV(cmd.StringSlice("tags")),
+			}
+			if err := listRecords(service, filters); err != nil {
+				printError("unable to list ADRs: %v", err)
+				return errSilent
+			}
+			return nil
+		},
+	}
 }
 
-func init() {
-	listCmd.Flags().StringSliceVarP(
-		&list_authors,
-		"authors",
-		"a",
-		[]string{},
-		"filter records by authors",
-	)
-	listCmd.Flags().StringSliceVarP(
-		&list_status,
-		"status",
-		"s",
-		[]string{},
-		"filter records by status",
-	)
-	listCmd.Flags().StringSliceVarP(
-		&list_tags,
-		"tags",
-		"t",
-		[]string{},
-		"filter records by tags",
-	)
-	rootCmd.AddCommand(listCmd)
+type listFilters struct {
+	authors []string
+	status  []string
+	tags    []string
 }
 
-func listRecords(service *records.Service) error {
+func listRecords(service *records.Service, filters listFilters) error {
 	adrs := service.GetRecords()
 
 	table := tablewriter.NewWriter(os.Stdout)
@@ -73,20 +71,16 @@ func listRecords(service *records.Service) error {
 	data := [][]string{}
 
 	for _, adr := range adrs {
-		if len(list_authors) > 0 {
-			if !slices.Contains(list_authors, adr.Author) {
-				continue
-			}
+		if len(filters.authors) > 0 && !slices.Contains(filters.authors, adr.Author) {
+			continue
 		}
-		if len(list_status) > 0 {
-			if !slices.Contains(list_status, adr.Status.String()) {
-				continue
-			}
+		if len(filters.status) > 0 && !slices.Contains(filters.status, adr.Status.String()) {
+			continue
 		}
-		if len(list_tags) > 0 {
+		if len(filters.tags) > 0 {
 			found := false
 			for tag := range adr.Tags {
-				if slices.Contains(list_tags, tag) {
+				if slices.Contains(filters.tags, tag) {
 					found = true
 					break
 				}

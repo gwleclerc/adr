@@ -10,7 +10,7 @@ testcases:
           ./adr.test --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a command to execute'"
+          - "result.systemerr ShouldContainSubstring 'invalid argument: please specify a command to execute'"
 
   - name: Init ADR repository without directory
     steps:
@@ -20,7 +20,7 @@ testcases:
           ./adr.test init --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a directory in arguments'"
+          - "result.systemerr ShouldContainSubstring 'invalid argument: please specify a directory in arguments'"
 
   - name: Init ADR repository with file
     steps:
@@ -31,7 +31,7 @@ testcases:
           ./adr.test init fail_init --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - 'result.systemout ShouldContainSubstring "unable to init ADRs directory: "fail_init" is not a directory"'
+          - 'result.systemerr ShouldContainSubstring "unable to init ADRs directory: "fail_init" is not a directory"'
  
   - name: Init ADR repository with directory
     steps:
@@ -60,7 +60,7 @@ testcases:
           ./adr.test new --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a title in arguments'"
+          - "result.systemerr ShouldContainSubstring 'invalid argument: please specify a title in arguments'"
 
   - name: Create ADR without git author
     steps:
@@ -91,7 +91,7 @@ testcases:
       - type: exec
         script: |
           cd {{.build}}
-          echo "[user]\n\tname = Test User" > .gitconfig
+          printf '[user]\n\tname = Test User\n' > .gitconfig
           export GIT_CONFIG=.gitconfig
           ./adr.test new My second Record --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
@@ -192,7 +192,7 @@ testcases:
           ./adr.test update --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
+          - "result.systemerr ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
 
   - name: Update last ADR without flags
     steps:
@@ -266,7 +266,7 @@ testcases:
           ./adr.test add --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
+          - "result.systemerr ShouldContainSubstring 'invalid argument: please specify a record ID in arguments'"
 
   - name: Add nothing to the last ADR
     steps:
@@ -276,7 +276,7 @@ testcases:
           ./adr.test add {{.Create-ADR-with-author-and-supersedes.ID}} --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 1
-          - "result.systemout ShouldContainSubstring 'invalid arguments: nothing to add to the record'"
+          - "result.systemerr ShouldContainSubstring 'invalid arguments: nothing to add to the record'"
 
   - name: Add superseders to first ADR
     steps:

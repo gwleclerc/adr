@@ -61,8 +61,8 @@ func (s Service) CreateRecord(title string, record AdrData) error {
 	prefix := fmt.Sprintf("%03d", 1)
 	for i := range s.ids {
 		recordID := s.ids[len(s.ids)-1-i]
-		record := s.records[recordID]
-		if number := utils.GetRecordNumber(record.Name); number != "" {
+		previous := s.records[recordID]
+		if number := utils.GetRecordNumber(previous.Name); number != "" {
 			count, _ := strconv.Atoi(number)
 			prefix = fmt.Sprintf("%03d", count+1)
 			break

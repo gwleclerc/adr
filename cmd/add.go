@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -8,78 +9,69 @@ import (
 	cs "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/records"
 	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	add_tags        []string
-	add_superseders []string
-)
-
-// addCmd represents the add command
-var addCmd = &cobra.Command{
-	Use:   "add [flags] <record ID>",
-	Short: "Add tags or superseders into ADR",
-	Long: `
-Add tags or superseders to an existing architecture decision record.
+func addCommand() *cli.Command {
+	return &cli.Command{
+		Name:      "add",
+		Usage:     "Add tags or superseders into ADR",
+		ArgsUsage: "<record ID>",
+		Description: `Add tags or superseders to an existing architecture decision record.
 It will keep the content and only modify the metadata.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) <= 0 {
-			fmt.Printf("%s %s %s\n", cs.Red("invalid argument: please specify a"), cs.RedUnderline("record ID"), cs.Red("in arguments"))
-			return ErrSilent
-		}
-		if len(args) > 1 {
-			fmt.Println(cs.Yellow("too many argument: keeping only the first record ID"))
-		}
-		recordID := args[0]
-		if len(add_tags) <= 0 && len(add_superseders) <= 0 {
-			fmt.Println(cs.Red("invalid arguments: nothing to add to the record %q", recordID))
-			return ErrSilent
-		}
-		service, err := records.NewService()
-		if err != nil {
-			fmt.Println(cs.Red("unable to initialize records service: %v", err))
-			return ErrSilent
-		}
-		if err := addToRecord(service, recordID); err != nil {
-			fmt.Println(cs.Red("unable to update ADR %q: %v", recordID, err))
-			return ErrSilent
-		}
-		return nil
-	},
+		Flags: []cli.Flag{
+			&cli.StringSliceFlag{
+				Name:    "tags",
+				Aliases: []string{"t"},
+				Usage:   "tags of the record",
+			},
+			&cli.StringSliceFlag{
+				Name:    "superseders",
+				Aliases: []string{"r"},
+				Usage:   "superseders of the record",
+			},
+		},
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			if cmd.Args().Len() == 0 {
+				missingArgument("record ID")
+				return errSilent
+			}
+			if cmd.Args().Len() > 1 {
+				printWarning("too many arguments: keeping only the first record ID")
+			}
+			recordID := cmd.Args().First()
+			tags := splitCSV(cmd.StringSlice("tags"))
+			superseders := splitCSV(cmd.StringSlice("superseders"))
+			if len(tags) == 0 && len(superseders) == 0 {
+				printError("invalid arguments: nothing to add to the record %q", recordID)
+				return errSilent
+			}
+			service, err := records.NewService()
+			if err != nil {
+				printError("unable to initialize records service: %v", err)
+				return errSilent
+			}
+			if err := addToRecord(service, recordID, tags, superseders); err != nil {
+				printError("unable to update ADR %q: %v", recordID, err)
+				return errSilent
+			}
+			return nil
+		},
+	}
 }
 
-func init() {
-	addCmd.Flags().StringSliceVarP(
-		&add_tags,
-		"tags",
-		"t",
-		[]string{},
-		`tags of the record`,
-	)
-	addCmd.Flags().StringSliceVarP(
-		&add_superseders,
-		"superseders",
-		"r",
-		[]string{},
-		`superseders of the record`,
-	)
-	rootCmd.AddCommand(addCmd)
-}
-
-func addToRecord(service *records.Service, recordID string) error {
+func addToRecord(service *records.Service, recordID string, tags, superseders []string) error {
 	record, ok := service.GetRecord(recordID)
 	if !ok {
 		return errors.New("record not found")
 	}
-	if len(add_tags) > 0 {
-		record.Tags.Append(add_tags...)
+	if len(tags) > 0 {
+		record.Tags.Append(tags...)
 	}
-	if len(add_superseders) > 0 {
-		record.Superseders.Append(add_superseders...)
+	if len(superseders) > 0 {
+		record.Superseders.Append(superseders...)
 	}
-	err := service.UpdateRecord(record)
-	if err != nil {
+	if err := service.UpdateRecord(record); err != nil {
 		return err
 	}
 	fmt.Println()

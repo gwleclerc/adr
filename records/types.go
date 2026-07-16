@@ -2,15 +2,14 @@ package records
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	cs "github.com/gwleclerc/adr/constants"
-	"github.com/spf13/cobra"
-	"golang.org/x/exp/constraints"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,23 +26,44 @@ const (
 	OBSERVED   AdrStatus = "observed"
 )
 
-// String is used both by fmt.Print and by Cobra in help text
-func (e *AdrStatus) String() string {
-	return string(*e)
+// AdrStatuses lists every allowed status in display order.
+var AdrStatuses = []AdrStatus{UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED, OBSERVED}
+
+// AdrStatusDescriptions documents the meaning of each status.
+var AdrStatusDescriptions = map[AdrStatus]string{
+	UNKNOWN:    "status is not determined",
+	PROPOSED:   "the record has been proposed but is not accepted yet by stakeholders",
+	ACCEPTED:   "the record has been accepted by stakeholders",
+	DEPRECATED: "the decision record is deprecated and no longer applies",
+	SUPERSEDED: "the decision record has been superseded by a new one",
+	OBSERVED:   "the decision was observed after the fact",
 }
 
-// Set must have pointer receiver so it doesn't change the value of a copy
-func (e *AdrStatus) Set(v string) error {
-	switch AdrStatus(v) {
-	case UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED, OBSERVED:
-		*e = AdrStatus(v)
-		return nil
-	default:
-		return fmt.Errorf(
-			"must be one of %q, %q, %q, %q, %q or %q",
-			UNKNOWN, PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED, OBSERVED,
-		)
+// String is used by fmt.Print and everywhere a status is rendered as text.
+func (e AdrStatus) String() string {
+	return string(e)
+}
+
+// ParseStatus validates a raw value and returns the matching AdrStatus.
+func ParseStatus(v string) (AdrStatus, error) {
+	status := AdrStatus(v)
+	if slices.Contains(AdrStatuses, status) {
+		return status, nil
 	}
+	return "", fmt.Errorf("must be one of %s", AllowedStatuses())
+}
+
+// AllowedStatuses returns the allowed statuses formatted for help/error messages,
+// e.g. `"unknown", "proposed", "accepted", "deprecated", "superseded" or "observed"`.
+func AllowedStatuses() string {
+	quoted := make([]string, len(AdrStatuses))
+	for i, s := range AdrStatuses {
+		quoted[i] = fmt.Sprintf("%q", s)
+	}
+	if len(quoted) < 2 {
+		return strings.Join(quoted, "")
+	}
+	return strings.Join(quoted[:len(quoted)-1], ", ") + " or " + quoted[len(quoted)-1]
 }
 
 // Colorized returns the AdrStatus as a colored string
@@ -56,23 +76,6 @@ func (e AdrStatus) Colorized() string {
 	default:
 		return cs.Grey(e.String())
 	}
-}
-
-// Type is only used in help text
-func (e *AdrStatus) Type() string {
-	return "status"
-}
-
-// AdrStatusCompletion is used to autocomplete cobra command
-func AdrStatusCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return []string{
-		fmt.Sprintf("%s\t%s", UNKNOWN, "status is not determined"),
-		fmt.Sprintf("%s\t%s", PROPOSED, "the record has been proposed but is not accepted yet by stakeholders"),
-		fmt.Sprintf("%s\t%s", ACCEPTED, "the record has been accepted by stakeholders"),
-		fmt.Sprintf("%s\t%s", DEPRECATED, "the decision record is deprecated and no longer applies"),
-		fmt.Sprintf("%s\t%s", SUPERSEDED, "the decision record has been superseded by a new one"),
-		fmt.Sprintf("%s\t%s", OBSERVED, "the decision was observed after the fact"),
-	}, cobra.ShellCompDirectiveDefault
 }
 
 type AdrData struct {
@@ -102,7 +105,7 @@ func (a AdrData) ToRow() []string {
 	}
 }
 
-type Set[T constraints.Ordered] map[T]bool
+type Set[T cmp.Ordered] map[T]bool
 
 func (s *Set[T]) Append(elements ...T) {
 	if s == nil || (*s) == nil {
@@ -129,9 +132,7 @@ func (s Set[T]) ToSlice() []T {
 	for elem := range s {
 		res = append(res, elem)
 	}
-	sort.Slice(res, func(i, j int) bool {
-		return res[i] < res[j]
-	})
+	slices.Sort(res)
 	return res
 }
 

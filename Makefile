@@ -17,10 +17,16 @@ GO_LDFLAGS:=-ldflags="$(GO_LDFLAGS)"
 
 SUITE=*.venom.yml
 
+DIST=dist
+# OS/arch pairs to cross-compile for release. `arm` maps to GOARM=7 (armv7).
+PLATFORMS=linux/amd64 linux/arm64 linux/386 linux/arm \
+	darwin/amd64 darwin/arm64 \
+	windows/amd64 windows/arm64 windows/386
+
 .PHONY: default
 default: build
 
-GOLANGCILINTVERSION:=1.46.2
+GOLANGCILINTVERSION:=1.64.8
 GOLANGCILINT=$(GOPATH)/bin/golangci-lint
 $(GOLANGCILINT):
 	curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v$(GOLANGCILINTVERSION)
@@ -37,6 +43,34 @@ $(GOCOVMERGE):
 .PHONY: build
 build:
 	go build $(GO_LDFLAGS) -o ./build/$(APPNAME)
+
+# release cross-compiles the binary for every platform in PLATFORMS, packages each
+# one as a tar.gz (zip on Windows) alongside README/LICENSE, and writes checksums.
+# Usage: make release VERSION=v1.2.3 RELEASE=1
+.PHONY: release
+release: clean-dist
+	@mkdir -p $(DIST)
+	@for platform in $(PLATFORMS); do \
+		os=$${platform%/*}; arch=$${platform#*/}; \
+		archname=$$arch; goarm=; bin=$(APPNAME); \
+		if [ "$$arch" = "arm" ]; then archname=armv7; goarm=7; fi; \
+		if [ "$$os" = "windows" ]; then bin=$(APPNAME).exe; fi; \
+		stage=$(APPNAME)_$(VERSION)_$${os}_$${archname}; \
+		echo ">> building $$os/$$arch -> $$stage"; \
+		mkdir -p $(DIST)/$$stage; \
+		cp README.md LICENSE $(DIST)/$$stage/; \
+		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch GOARM=$$goarm \
+			go build -trimpath $(GO_LDFLAGS) -o $(DIST)/$$stage/$$bin . || exit 1; \
+		if [ "$$os" = "windows" ]; then \
+			(cd $(DIST)/$$stage && zip -q -r ../$$stage.zip .); \
+		else \
+			tar -czf $(DIST)/$$stage.tar.gz -C $(DIST)/$$stage .; \
+		fi; \
+		rm -rf $(DIST)/$$stage; \
+	done
+	@cd $(DIST) && (sha256sum * 2>/dev/null || shasum -a 256 *) > checksums.txt
+	@echo ">> artifacts written to $(DIST)/"
+	@ls -1 $(DIST)
 
 .PHONY: lint
 lint: $(GOLANGCILINT)
@@ -58,6 +92,8 @@ coverage: $(GOCOVMERGE)
 
 .PHONY: clean
 clean:
-	mv ./build/.gitkeep /tmp/.gitkeep
-	rm -rf ./build/* ./build/.gitconfig ./build/.adrrc.yml
-	mv /tmp/.gitkeep ./build/.gitkeep
+	find ./build -mindepth 1 ! -name .gitkeep -delete
+
+.PHONY: clean-dist
+clean-dist:
+	rm -rf $(DIST)

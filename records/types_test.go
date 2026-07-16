@@ -25,7 +25,7 @@ func TestSetAppend(t *testing.T) {
 			tt.args.set.Append(tt.args.elementsToAppend...)
 			got := tt.args.set.ToSlice()
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AdrStatusCompletion() got = %v, want %v", got, tt.want)
+				t.Errorf("Set.Append() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -51,7 +51,7 @@ func TestSetRemove(t *testing.T) {
 			tt.args.set.Remove(tt.args.elementsToRemove...)
 			got := tt.args.set.ToSlice()
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AdrStatusCompletion() got = %v, want %v", got, tt.want)
+				t.Errorf("Set.Remove() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -77,7 +77,7 @@ func TestSetSet(t *testing.T) {
 			tt.args.set.Set(tt.args.elementsToSet...)
 			got := tt.args.set.ToSlice()
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AdrStatusCompletion() got = %v, want %v", got, tt.want)
+				t.Errorf("Set.Set() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

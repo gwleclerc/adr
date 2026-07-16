@@ -21,7 +21,6 @@ var (
 	Green        = gchalk.WithGreen().Sprintf
 	Yellow       = gchalk.WithYellow().Sprintf
 	Grey         = gchalk.WithGrey().Sprintf
-	White        = gchalk.WithWhite().Sprintf
 
 	TableHeader = []string{"ID", "Title", "Status", "Author", "Creation Date", "Last Update Date", "Superseders", "Tags"}
 )
