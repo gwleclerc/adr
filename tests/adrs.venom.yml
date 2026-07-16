@@ -84,7 +84,7 @@ testcases:
           - "result.content ShouldNotContainSubstring 'author: Test User'"
           - "result.content ShouldNotContainSubstring 'author: Unknown'"
           - "result.content ShouldContainSubstring 'status: accepted'"
-          - "result.content ShouldContainSubstring '# My First Record'"
+          - "result.content ShouldContainSubstring '# My first Record'"
 
   - name: Create ADR with git author
     steps:
@@ -107,7 +107,7 @@ testcases:
           - result.err ShouldBeEmpty
           - "result.content ShouldContainSubstring 'author: Test User'"
           - "result.content ShouldContainSubstring 'status: accepted'"
-          - "result.content ShouldContainSubstring '# My Second Record'"
+          - "result.content ShouldContainSubstring '# My second Record'"
 
   - name: Create ADR with specified author
     steps:
@@ -128,7 +128,7 @@ testcases:
           - result.err ShouldBeEmpty
           - "result.content ShouldContainSubstring 'author: User'"
           - "result.content ShouldContainSubstring 'status: accepted'"
-          - "result.content ShouldContainSubstring '# My Third Record'"
+          - "result.content ShouldContainSubstring '# My third Record'"
 
   - name: Create ADR with author status and tags
     steps:
@@ -152,7 +152,7 @@ testcases:
           - "result.content ShouldContainSubstring 'tags:'"
           - "result.content ShouldContainSubstring '- test1'"
           - "result.content ShouldContainSubstring '- test2'"
-          - "result.content ShouldContainSubstring '# My Fourth Record'"
+          - "result.content ShouldContainSubstring '# My fourth Record'"
 
   - name: Create ADR with author and supersedes
     steps:
@@ -182,7 +182,7 @@ testcases:
           - "result.content ShouldContainSubstring 'status: accepted'"
           - "result.content ShouldContainSubstring 'tags:'"
           - "result.content ShouldContainSubstring '- test'"
-          - "result.content ShouldContainSubstring '# My Fifth Record'"
+          - "result.content ShouldContainSubstring '# My fifth Record'"
 
   - name: Update last ADR without record ID
     steps:
@@ -382,6 +382,45 @@ testcases:
           - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
           - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
 
+  - name: List records as JSON
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test list --json --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'creation_date'
+          - result.systemout ShouldContainSubstring '{{.Create-ADR-with-specified-author.ID}}'
+
+  - name: Show a record raw and as JSON
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test show {{.Create-ADR-without-git-author.ID}} --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - "result.systemout ShouldContainSubstring '# My first Record'"
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test show {{.Create-ADR-without-git-author.ID}} --json --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring '{{.Create-ADR-without-git-author.ID}}'
+          - result.systemout ShouldContainSubstring 'creation_date'
+
+  - name: Show an unknown record
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test show does-not-exist --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemerr ShouldContainSubstring 'not found'
+
   - name: Create ADR with MADR template
     steps:
       - type: exec
@@ -482,3 +521,20 @@ testcases:
         assertions:
           - result.err ShouldBeEmpty
           - "result.content ShouldContainSubstring '## What changed'"
+
+  - name: Config defaults for template and author
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          printf 'default_template: madr\ndefault_author: Bot\n' >> .adrrc.yml
+          ./adr.test new Defaulted record --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/009_defaulted_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'author: Bot'"
+          - "result.content ShouldContainSubstring '## Considered Options'"

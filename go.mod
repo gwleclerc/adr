@@ -13,8 +13,6 @@ require (
 	github.com/tcnksm/go-gitconfig v0.1.2
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125
 	github.com/urfave/cli/v3 v3.10.1
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	golang.org/x/text v0.3.7
 	gopkg.in/yaml.v3 v3.0.1
 )
 

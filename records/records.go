@@ -11,15 +11,15 @@ import (
 	simpleSlug "github.com/gosimple/slug"
 	"github.com/gwleclerc/adr/templates"
 	"github.com/gwleclerc/adr/utils"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type Service struct {
-	records      map[string]AdrData
-	ids          []string
-	adrsPath     string
-	templatesDir string
+	records         map[string]AdrData
+	ids             []string
+	adrsPath        string
+	templatesDir    string
+	defaultTemplate string
+	defaultAuthor   string
 }
 
 func NewService() (*Service, error) {
@@ -52,16 +52,33 @@ func NewService() (*Service, error) {
 		templatesDir = filepath.Join(dir, cfg.TemplatesDir)
 	}
 	return &Service{
-		records:      records,
-		ids:          ids,
-		adrsPath:     adrsPath,
-		templatesDir: templatesDir,
+		records:         records,
+		ids:             ids,
+		adrsPath:        adrsPath,
+		templatesDir:    templatesDir,
+		defaultTemplate: cfg.DefaultTemplate,
+		defaultAuthor:   cfg.DefaultAuthor,
 	}, nil
 }
 
 // TemplatesDir returns the resolved custom templates directory ("" if unset).
 func (s Service) TemplatesDir() string {
 	return s.templatesDir
+}
+
+// DefaultTemplate returns the template configured as default ("" if unset).
+func (s Service) DefaultTemplate() string {
+	return s.defaultTemplate
+}
+
+// DefaultAuthor returns the author configured as default ("" if unset).
+func (s Service) DefaultAuthor() string {
+	return s.defaultAuthor
+}
+
+// RecordPath returns the absolute path of a record's file.
+func (s Service) RecordPath(record AdrData) string {
+	return filepath.Join(s.adrsPath, record.Name)
 }
 
 func (s Service) GetRecord(recordID string) (AdrData, bool) {
@@ -80,7 +97,7 @@ func (s Service) GetRecords() []AdrData {
 // CreateRecord writes a new record file. body is the markdown of the sections
 // (a template skeleton or a caller-provided, already-validated body); the record
 // envelope (front-matter, title and date) is added here.
-func (s Service) CreateRecord(title string, record AdrData, body string) error {
+func (s Service) CreateRecord(title string, record AdrData, body string) (string, error) {
 	prefix := fmt.Sprintf("%03d", 1)
 	for i := range s.ids {
 		recordID := s.ids[len(s.ids)-1-i]
@@ -92,24 +109,29 @@ func (s Service) CreateRecord(title string, record AdrData, body string) error {
 		}
 	}
 
+	title = strings.TrimSpace(title)
 	slug := strings.ReplaceAll(simpleSlug.Make(title), "-", "_")
 	filename := fmt.Sprintf("%s_%s.md", prefix, slug)
 
 	date := time.Now()
-	record.Title = slug
+	// Store the human-readable title in the metadata; the slug lives only in the
+	// filename. The title is used verbatim so acronyms and casing are preserved.
+	record.Title = title
 	record.CreationDate = date
 	record.LastUpdateDate = date
 
 	header, err := MarshalYAML(record)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	titleCased := cases.Title(language.Und).String(strings.ToLower(title))
 	fullBody := fmt.Sprintf("# %s\n\nDate: %s\n\n%s",
-		titleCased, date.Format(time.RFC1123), strings.TrimRight(body, "\n"))
+		title, date.Format(time.RFC1123), strings.TrimRight(body, "\n"))
 
-	return s.writeRecord(filename, string(header), fullBody)
+	if err := s.writeRecord(filename, string(header), fullBody); err != nil {
+		return "", err
+	}
+	return filepath.Join(s.adrsPath, filename), nil
 }
 
 func (s Service) UpdateRecord(record AdrData) error {

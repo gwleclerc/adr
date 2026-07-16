@@ -3,6 +3,7 @@ package records
 import (
 	"bytes"
 	"cmp"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -90,17 +91,17 @@ func (e AdrStatus) Colorized() string {
 }
 
 type AdrData struct {
-	ID             string      `yaml:"id"`
-	Title          string      `yaml:"title"`
-	Author         string      `yaml:"author"`
-	Status         AdrStatus   `yaml:"status"`
-	CreationDate   time.Time   `yaml:"creation_date" mapstructure:"creation_date"`
-	LastUpdateDate time.Time   `yaml:"last_update_date" mapstructure:"last_update_date"`
-	Tags           Set[string] `yaml:"tags,omitempty"`
-	Superseders    Set[string] `yaml:"superseders,omitempty"`
+	ID             string      `yaml:"id" json:"id"`
+	Title          string      `yaml:"title" json:"title"`
+	Author         string      `yaml:"author" json:"author"`
+	Status         AdrStatus   `yaml:"status" json:"status"`
+	CreationDate   time.Time   `yaml:"creation_date" mapstructure:"creation_date" json:"creation_date"`
+	LastUpdateDate time.Time   `yaml:"last_update_date" mapstructure:"last_update_date" json:"last_update_date"`
+	Tags           Set[string] `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Superseders    Set[string] `yaml:"superseders,omitempty" json:"superseders,omitempty"`
 
-	Name string `yaml:"-"`
-	Body string `yaml:"-"`
+	Name string `yaml:"-" json:"file"`
+	Body string `yaml:"-" json:"-"`
 }
 
 func (a AdrData) ToRow() []string {
@@ -149,6 +150,10 @@ func (s Set[T]) ToSlice() []T {
 
 func (s Set[T]) MarshalYAML() (interface{}, error) {
 	return s.ToSlice(), nil
+}
+
+func (s Set[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.ToSlice())
 }
 
 func (s *Set[T]) UnmarshalYAML(unmarshal func(interface{}) error) error {

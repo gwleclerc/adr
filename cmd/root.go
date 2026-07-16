@@ -44,6 +44,8 @@ func newApp(bi BuildInfo) *cli.Command {
 			addCommand(),
 			updateCommand(),
 			listCommand(),
+			showCommand(),
+			editCommand(),
 			templateCommand(),
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {

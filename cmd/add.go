@@ -69,7 +69,10 @@ func addToRecord(service *records.Service, recordID string, tags, superseders []
 		record.Tags.Append(tags...)
 	}
 	if len(superseders) > 0 {
+		warnUnknownRecords(service, superseders)
 		record.Superseders.Append(superseders...)
+		// A record that now has superseders has, by definition, been superseded.
+		record.Status = records.SUPERSEDED
 	}
 	if err := service.UpdateRecord(record); err != nil {
 		return err

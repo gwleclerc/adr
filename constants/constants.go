@@ -5,8 +5,10 @@ import (
 )
 
 type Config struct {
-	Directory    string `yaml:"directory"`
-	TemplatesDir string `yaml:"templates_dir,omitempty"`
+	Directory       string `yaml:"directory"`
+	TemplatesDir    string `yaml:"templates_dir,omitempty"`
+	DefaultTemplate string `yaml:"default_template,omitempty"`
+	DefaultAuthor   string `yaml:"default_author,omitempty"`
 }
 
 const (

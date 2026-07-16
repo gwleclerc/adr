@@ -110,7 +110,15 @@ func updateRecord(service *records.Service, recordID string, opts updateRecordOp
 		record.Tags.Set(opts.tags...)
 	}
 	if opts.setSuperseders {
+		if len(opts.superseders) > 0 {
+			warnUnknownRecords(service, opts.superseders)
+		}
 		record.Superseders.Set(opts.superseders...)
+		// Gaining superseders implies the record is superseded, unless the user
+		// set an explicit status in this same call.
+		if len(opts.superseders) > 0 && opts.status == "" {
+			record.Status = records.SUPERSEDED
+		}
 	}
 
 	if err := service.UpdateRecord(record); err != nil {

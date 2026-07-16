@@ -22,6 +22,7 @@ type newRecordOptions struct {
 	tags       []string
 	supersedes []string
 	body       string
+	edit       bool
 }
 
 func newCommand() *cli.Command {
@@ -64,6 +65,10 @@ It will be created in the directory defined in the nearest %s configuration file
 				Name:  "body-file",
 				Usage: "read the record body from a file (or - for stdin) instead of the template; validated against --template",
 			},
+			&cli.BoolFlag{
+				Name:  "edit",
+				Usage: "open the created record in $EDITOR",
+			},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
 			title := strings.TrimSpace(strings.Join(cmd.Args().Slice(), " "))
@@ -88,6 +93,9 @@ It will be created in the directory defined in the nearest %s configuration file
 				return errSilent
 			}
 			templateName := cmd.String("template")
+			if !cmd.IsSet("template") && service.DefaultTemplate() != "" {
+				templateName = service.DefaultTemplate()
+			}
 			tpl, ok := reg[templateName]
 			if !ok {
 				printError("invalid template %q: available: %s", templateName, strings.Join(templates.Names(reg), ", "))
@@ -107,12 +115,17 @@ It will be created in the directory defined in the nearest %s configuration file
 				body = content
 			}
 
+			author := cmd.String("author")
+			if author == "" {
+				author = service.DefaultAuthor()
+			}
 			opts := newRecordOptions{
-				author:     cmd.String("author"),
+				author:     author,
 				status:     status,
 				tags:       splitCSV(cmd.StringSlice("tags")),
 				supersedes: splitCSV(cmd.StringSlice("supersedes")),
 				body:       body,
+				edit:       cmd.Bool("edit"),
 			}
 			if err := newRecord(service, title, opts); err != nil {
 				printError("unable to create a new ADR: %v", err)
@@ -154,26 +167,21 @@ func newRecord(service *records.Service, title string, opts newRecordOptions) er
 	}
 	record.Tags.Append(opts.tags...)
 
-	if err := service.CreateRecord(title, record, opts.body); err != nil {
+	path, err := service.CreateRecord(title, record, opts.body)
+	if err != nil {
 		return err
 	}
 
 	fmt.Println()
 	fmt.Println(cs.Green("Record has been successfully created with ID %q", record.ID))
 
-	for _, id := range opts.supersedes {
-		rcd, ok := service.GetRecord(id)
-		if !ok {
-			continue
-		}
-		rcd.Status = records.SUPERSEDED
-		rcd.Superseders.Append(record.ID)
-		if err := service.UpdateRecord(rcd); err != nil {
-			printWarning("Unable to update record %q: %v", rcd.ID, err)
-		}
-	}
+	markSuperseded(service, record.ID, opts.supersedes)
 
 	fmt.Println()
+
+	if opts.edit {
+		return openEditor(path)
+	}
 	return nil
 }
 

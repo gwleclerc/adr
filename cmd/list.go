@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -36,6 +37,10 @@ func listCommand() *cli.Command {
 				Aliases: []string{"t"},
 				Usage:   "filter records by tags",
 			},
+			&cli.BoolFlag{
+				Name:  "json",
+				Usage: "output records as JSON instead of a table",
+			},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
 			service, err := records.NewService()
@@ -48,10 +53,15 @@ func listCommand() *cli.Command {
 				status:  splitCSV(cmd.StringSlice("status")),
 				tags:    splitCSV(cmd.StringSlice("tags")),
 			}
-			if err := listRecords(service, filters); err != nil {
-				printError("unable to list ADRs: %v", err)
-				return errSilent
+			adrs := filterRecords(service.GetRecords(), filters)
+			if cmd.Bool("json") {
+				if err := renderJSON(adrs); err != nil {
+					printError("unable to encode records: %v", err)
+					return errSilent
+				}
+				return nil
 			}
+			renderTable(adrs)
 			return nil
 		},
 	}
@@ -63,13 +73,8 @@ type listFilters struct {
 	tags    []string
 }
 
-func listRecords(service *records.Service, filters listFilters) error {
-	adrs := service.GetRecords()
-
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(cs.TableHeader)
-	data := [][]string{}
-
+func filterRecords(adrs []records.AdrData, filters listFilters) []records.AdrData {
+	out := make([]records.AdrData, 0, len(adrs))
 	for _, adr := range adrs {
 		if len(filters.authors) > 0 && !slices.Contains(filters.authors, adr.Author) {
 			continue
@@ -89,12 +94,27 @@ func listRecords(service *records.Service, filters listFilters) error {
 				continue
 			}
 		}
-		data = append(data, adr.ToRow())
+		out = append(out, adr)
 	}
+	return out
+}
 
-	table.AppendBulk(data)
+func renderJSON(adrs []records.AdrData) error {
+	b, err := json.MarshalIndent(adrs, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+	return nil
+}
+
+func renderTable(adrs []records.AdrData) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(cs.TableHeader)
+	for _, adr := range adrs {
+		table.Append(adr.ToRow())
+	}
 	fmt.Println()
 	table.Render()
 	fmt.Println()
-	return nil
 }

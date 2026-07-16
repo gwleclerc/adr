@@ -184,14 +184,31 @@ OPTIONS:
    --help, -h                   show help
 ```
 
-This will display the records as a table.
+This will display the records as a table. Pass `--json` for machine-readable output
+(handy for scripts and agents):
 
 ```bash
-+-----------+-----------------------------------+----------+-----------------+-------------+--------------+
-|    ID     |              TITLE                |  STATUS  |     AUTHOR      |    DATE     |     TAGS     |
-+-----------+-----------------------------------+----------+-----------------+-------------+--------------+
-| zl3cUj97R | decisive_decision_of_architecture | accepted | Gwendal Leclerc | 2 hours ago | architecture |
-+-----------+-----------------------------------+----------+-----------------+-------------+--------------+
+adr list --json
+```
+
+## Inspecting and editing a record
+
+```bash
+adr show <record ID>          # print the ADR file
+adr show <record ID> --json   # print its metadata as JSON
+adr edit <record ID>          # open it in $EDITOR (or $VISUAL, or vi)
+adr new "..." --edit          # create then open in your editor
+```
+
+## Configuration
+
+`.adrrc.yml` supports the following keys:
+
+```yaml
+directory: docs/adrs           # where records live (required)
+templates_dir: .adr/templates  # optional: directory of custom *.tpl templates
+default_template: madr         # optional: template used when --template is omitted
+default_author: "Team Foo"     # optional: author used when --author is omitted
 ```
 
 # Development
