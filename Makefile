@@ -90,6 +90,23 @@ coverage: $(GOCOVMERGE)
 	$(GOCOVMERGE) build/*.cover.out > build/coverage.out
 	go tool cover -html=build/coverage.out -o build/coverage.html
 
+# Claude Code skill: symlink the versioned skill into the user's skills dir so it
+# stays maintained in-repo while being available globally in Claude Code.
+CLAUDE_SKILLS_DIR?=$(HOME)/.claude/skills
+SKILL_NAME:=adr
+SKILL_SRC:=$(CURDIR)/.claude/skills/$(SKILL_NAME)
+
+.PHONY: install-skill
+install-skill:
+	@mkdir -p $(CLAUDE_SKILLS_DIR)
+	@ln -sfn $(SKILL_SRC) $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)
+	@echo "linked $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME) -> $(SKILL_SRC)"
+
+.PHONY: uninstall-skill
+uninstall-skill:
+	@rm -f $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)
+	@echo "removed $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)"
+
 .PHONY: clean
 clean:
 	find ./build -mindepth 1 ! -name .gitkeep -delete
