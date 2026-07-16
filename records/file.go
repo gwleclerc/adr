@@ -58,7 +58,14 @@ func indexADRs(path string) ([]AdrData, error) {
 			res = append(res, adr)
 		}
 	}
+	// Sort by the numeric record prefix (so 1000 sorts after 999, unlike a plain
+	// string sort), falling back to the filename for records without a number.
 	slices.SortFunc(res, func(a, b AdrData) int {
+		na, _ := strconv.Atoi(utils.GetRecordNumber(a.Name))
+		nb, _ := strconv.Atoi(utils.GetRecordNumber(b.Name))
+		if na != nb {
+			return cmp.Compare(na, nb)
+		}
 		return cmp.Compare(a.Name, b.Name)
 	})
 	return res, nil

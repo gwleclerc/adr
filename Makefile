@@ -40,6 +40,14 @@ GOCOVMERGE=$(GOPATH)/bin/gocovmerge
 $(GOCOVMERGE):
 	go install github.com/wadey/gocovmerge@latest
 
+GOVULNCHECK=$(GOPATH)/bin/govulncheck
+$(GOVULNCHECK):
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+
+.PHONY: vuln
+vuln: $(GOVULNCHECK)
+	$(GOVULNCHECK) ./...
+
 .PHONY: build
 build:
 	go build $(GO_LDFLAGS) -o ./build/$(APPNAME)

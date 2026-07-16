@@ -334,11 +334,11 @@ testcases:
           ./adr.test list --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-without-git-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} '
 
   - name: List ADRs with tags
     steps:
@@ -348,11 +348,11 @@ testcases:
           ./adr.test list -t test1,test2 --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-specified-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} '
 
   - name: List ADRs with author
     steps:
@@ -362,11 +362,11 @@ testcases:
           ./adr.test list -a User --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-git-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} '
 
   - name: List ADRs with status
     steps:
@@ -376,11 +376,11 @@ testcases:
           ./adr.test list -s accepted --test.coverprofile {{.venom.testcase}}.cover.out
         assertions:
           - result.code ShouldEqual 0
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} |'
-          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
-          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-without-git-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-git-author.ID}} '
+          - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} '
+          - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} '
 
   - name: List records as JSON
     steps:

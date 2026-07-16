@@ -217,6 +217,16 @@ default_template: madr         # optional: template used when --template is omit
 default_author: "Team Foo"     # optional: author used when --author is omitted
 ```
 
+## Shell completion
+
+`adr` can generate completion scripts for your shell:
+
+```bash
+adr completion bash        # or: zsh, fish, powershell
+```
+
+Source the output from your shell profile (e.g. `source <(adr completion bash)`).
+
 # Development
 
 Common tasks are wrapped in the `Makefile`:
@@ -225,10 +235,14 @@ Common tasks are wrapped in the `Makefile`:
 make build          # build the binary into ./build
 make test           # unit tests with the race detector
 make integration    # end-to-end tests (installs and runs venom)
-make lint           # golangci-lint
+make lint           # golangci-lint (v2)
+make vuln           # govulncheck vulnerability scan
 make release VERSION=v1.2.3 RELEASE=1   # cross-compile archives into ./dist
 make install-claude # symlink the Claude Code skill + /adr command into ~/.claude
 ```
+
+CI additionally runs `govulncheck` on every push, and Dependabot opens weekly PRs to
+keep Go modules and GitHub Actions up to date (`.github/dependabot.yml`).
 
 Releases are produced automatically by GitHub Actions: pushing a `v*` tag builds
 binaries for Linux, macOS and Windows across amd64/arm64/386/arm and publishes them
