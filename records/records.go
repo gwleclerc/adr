@@ -151,11 +151,5 @@ func (s Service) writeRecord(filename, header, body string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(filepath.Join(s.adrsPath, filename))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	_, err = file.WriteString(out)
-	return err
+	return os.WriteFile(filepath.Join(s.adrsPath, filename), []byte(out), 0o644)
 }

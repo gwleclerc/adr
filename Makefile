@@ -26,10 +26,10 @@ PLATFORMS=linux/amd64 linux/arm64 linux/386 linux/arm \
 .PHONY: default
 default: build
 
-GOLANGCILINTVERSION:=1.64.8
+GOLANGCILINTVERSION:=2.12.2
 GOLANGCILINT=$(GOPATH)/bin/golangci-lint
 $(GOLANGCILINT):
-	curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v$(GOLANGCILINTVERSION)
+	curl -fsSL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(GOPATH)/bin v$(GOLANGCILINTVERSION)
 
 VENOMVERSION:=v1.0.1
 VENOM=$(GOPATH)/bin/venom

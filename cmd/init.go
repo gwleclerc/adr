@@ -48,20 +48,13 @@ func initConfiguration(path string) error {
 		return err
 	}
 
-	f, err := os.Create(cs.ConfigurationFile)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
 	b, err := yaml.Marshal(cs.Config{
 		Directory: path,
 	})
 	if err != nil {
 		return err
 	}
-
-	if _, err := f.Write(b); err != nil {
+	if err := os.WriteFile(cs.ConfigurationFile, b, 0o644); err != nil {
 		return err
 	}
 
