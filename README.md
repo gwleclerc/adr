@@ -206,6 +206,25 @@ adr new "..." --edit          # create then open in your editor
 `new`, `add`, `update`, `list`, `show`, and `template list` / `template show` — for
 scripting and agent use (`template show --json` also returns the section `headings`).
 
+## Maintaining the records
+
+```bash
+adr toc                        # print a markdown index of all records
+adr toc -o docs/adrs/README.md # or write it to a file (keep it fresh in CI/pre-commit)
+adr lint                       # report inconsistencies; non-zero exit if any (great in CI)
+adr lint --json
+```
+
+`lint` flags dangling superseder references, duplicate numbers, invalid statuses,
+superseders on a non-`superseded` record, and missing titles.
+
+Lifecycle shortcuts (thin wrappers over `update` / `add -r`):
+
+```bash
+adr deprecate <record ID>              # set status to deprecated
+adr supersede <old ID> <new ID>        # mark <old> superseded by an existing <new>
+```
+
 ## Configuration
 
 `.adrrc.yml` supports the following keys:

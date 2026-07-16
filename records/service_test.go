@@ -74,3 +74,32 @@ func TestServiceLifecycle(t *testing.T) {
 		t.Errorf("status after update = %q, want deprecated", r4.Status)
 	}
 }
+
+func TestServiceIgnoresNonRecords(t *testing.T) {
+	newTestProject(t)
+
+	svc, err := NewService()
+	if err != nil {
+		t.Fatalf("NewService: %v", err)
+	}
+	if _, err := svc.CreateRecord("A decision", AdrData{ID: "a", Status: ACCEPTED, Tags: make(Set[string])}, "## Context\nx\n"); err != nil {
+		t.Fatalf("CreateRecord: %v", err)
+	}
+
+	// Drop non-record files in the ADR directory (e.g. a generated index).
+	adrs := filepath.Join(".", "adrs")
+	if err := os.WriteFile(filepath.Join(adrs, "README.md"), []byte("# Index\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(adrs, "notes.txt"), []byte("scratch"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc2, err := NewService()
+	if err != nil {
+		t.Fatalf("NewService (reindex): %v", err)
+	}
+	if got := svc2.GetRecords(); len(got) != 1 {
+		t.Errorf("expected 1 record (non-records ignored), got %d: %+v", len(got), got)
+	}
+}

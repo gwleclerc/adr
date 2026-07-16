@@ -152,6 +152,9 @@ acting programmatically, so you parse structured data instead of scraping tables
 | `adr show <id> [--json]` | print one record (raw file, or metadata as JSON) |
 | `adr update <id> [-a] [-s] [-t] [-r] [--json]` | change metadata; only passed flags change; `--tags=` clears |
 | `adr add <id> [-t] [-r] [--json]` | append tags/superseders (adding superseders marks the record `superseded`) |
+| `adr deprecate <id>` / `adr supersede <old> <new>` | lifecycle shortcuts over `update`/`add -r` |
+| `adr toc [-o <file>]` | generate a markdown index of the records |
+| `adr lint [--json]` | report inconsistencies (dangling superseders, dup numbers, …); non-zero exit on issues |
 
 - Statuses: `unknown`, `proposed`, `accepted`, `deprecated`, `superseded`, `observed`
   (`observed` is a CLI extension for retrospective records; not part of MADR/Nygard).

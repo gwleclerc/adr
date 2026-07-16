@@ -54,6 +54,11 @@ func indexADRs(path string) ([]AdrData, error) {
 		if entry.IsDir() {
 			continue
 		}
+		// Only index files that look like records ("NNN_*.md"); this ignores a
+		// generated index (README.md) or any other stray file in the directory.
+		if utils.GetRecordNumber(entry.Name()) == "" {
+			continue
+		}
 		if adr, ok := parseADR(path, entry.Name()); ok {
 			res = append(res, adr)
 		}

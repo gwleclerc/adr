@@ -563,3 +563,66 @@ testcases:
         assertions:
           - result.code ShouldEqual 0
           - result.systemout ShouldContainSubstring 'headings'
+
+  - name: Generate a table of contents
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test toc --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring '# Architecture Decision Records'
+          - result.systemout ShouldContainSubstring '001_my_first_record.md'
+
+  - name: Lint a clean repository
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test lint --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'No issues found'
+
+  - name: Deprecate a record
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test deprecate {{.Create-ADR-with-specified-author.ID}} --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/003_my_third_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'status: deprecated'"
+
+  - name: Supersede a record via the shortcut
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test supersede {{.Create-ADR-with-git-author.ID}} {{.Create-ADR-with-specified-author.ID}} --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'has been successfully updated'
+      - type: readfile
+        path: "{{.build}}/adrs/002_my_second_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'status: superseded'"
+          - "result.content ShouldContainSubstring '- {{.Create-ADR-with-specified-author.ID}}'"
+
+  - name: Lint detects a dangling superseder
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test add {{.Create-ADR-with-author-status-and-tags.ID}} -r ghost-id --test.coverprofile {{.venom.testcase}}.1.cover.out
+          ./adr.test lint --test.coverprofile {{.venom.testcase}}.2.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring 'dangling-superseder'
