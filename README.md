@@ -71,7 +71,16 @@ OPTIONS:
    --status string, -s string     status of the record, allowed: "unknown", "proposed", "accepted", "deprecated", "superseded" or "observed" (default: "accepted")
    --tags string, -t string        tags of the record
    --supersedes string, -r string  record ids superseded by this one
+   --template string                body template, allowed: bare, madr (default: "bare")
    --help, -h                      show help
+```
+
+By default `new` scaffolds a minimal (Nygard-style) body. Pass `--template madr` for a
+richer [MADR](https://github.com/adr/madr)-lite layout with *Context and Problem
+Statement*, *Considered Options*, *Decision Outcome* and *Consequences* sections:
+
+```bash
+adr new use urfave/cli over cobra --template madr
 ```
 
 It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_architecture.md`.
@@ -79,6 +88,21 @@ It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_a
 Then you will have to open the file in your preferred editor and start editing the ADR.
 
 The template contains placeholders to indicate the purpose of each section.
+
+## Record statuses
+
+| Status | Meaning |
+|---|---|
+| `unknown` | status is not determined |
+| `proposed` | proposed but not accepted yet by stakeholders |
+| `accepted` | accepted by stakeholders |
+| `deprecated` | no longer applies |
+| `superseded` | replaced by a newer record (set automatically via `new -r`) |
+| `observed` | documents a **pre-existing** decision reconstructed after the fact — e.g. while making sense of legacy code you did not write |
+
+`observed` is handy for retrospective ADRs: when re-appropriating an inherited codebase,
+record *how things already are and why* (`adr new "..." -s observed`) rather than
+pretending the decision is being taken now.
 
 ## Updating a record
 
@@ -136,13 +160,28 @@ This will display the records as a table.
 Common tasks are wrapped in the `Makefile`:
 
 ```bash
-make build        # build the binary into ./build
-make test         # unit tests with the race detector
-make integration  # end-to-end tests (installs and runs venom)
-make lint         # golangci-lint
+make build          # build the binary into ./build
+make test           # unit tests with the race detector
+make integration    # end-to-end tests (installs and runs venom)
+make lint           # golangci-lint
 make release VERSION=v1.2.3 RELEASE=1   # cross-compile archives into ./dist
+make install-claude # symlink the Claude Code skill + /adr command into ~/.claude
 ```
 
 Releases are produced automatically by GitHub Actions: pushing a `v*` tag builds
 binaries for Linux, macOS and Windows across amd64/arm64/386/arm and publishes them
 to a GitHub release (see `.github/workflows/release.yml`).
+
+## Claude Code integration
+
+This repo ships a Claude Code skill (`.claude/skills/adr`) and an `/adr` command
+(`.claude/commands/adr.md`). Run `make install-claude` to symlink them into `~/.claude`
+so they're available in every repo (the source stays versioned here).
+
+- The **skill** teaches Claude to author structured ADRs with this CLI, and triggers
+  proactively when a decision is made in a session.
+- The **`/adr` command** records decisions on demand and routes by intent: capture the
+  decision(s) behind the changes just made (from the diff, as `accepted`), document a
+  specific decision, or sweep a codebase you're taking over and retro-document it as
+  several condensed `observed` ADRs. It never invents rationale — it asks you about the
+  *why* whenever it's ambiguous.

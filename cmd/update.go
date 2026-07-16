@@ -26,8 +26,10 @@ func updateCommand() *cli.Command {
 		Name:      "update",
 		Usage:     "Update an ADR",
 		ArgsUsage: "<record ID>",
-		Description: `Update an existing architecture decision record.
-It will keep the content and only modify the metadata.`,
+		Description: fmt.Sprintf(`Update an existing architecture decision record.
+It will keep the content and only modify the metadata.
+
+%s`, records.StatusHelp()),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "author",

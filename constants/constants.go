@@ -9,10 +9,11 @@ type Config struct {
 }
 
 const (
-	ConfigurationFile = ".adrrc.yml"
-	DefaultUserName   = "Unknown"
-	CreateADRTemplate = "create_adr.tpl"
-	UpdateADRTemplate = "update_adr.tpl"
+	ConfigurationFile     = ".adrrc.yml"
+	DefaultUserName       = "Unknown"
+	CreateADRTemplate     = "create_adr.tpl"
+	CreateADRTemplateMADR = "create_adr_madr.tpl"
+	UpdateADRTemplate     = "update_adr.tpl"
 )
 
 var (

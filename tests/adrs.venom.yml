@@ -381,3 +381,30 @@ testcases:
           - result.systemout ShouldContainSubstring '| {{.Create-ADR-with-specified-author.ID}} |'
           - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-status-and-tags.ID}} |'
           - result.systemout ShouldNotContainSubstring '| {{.Create-ADR-with-author-and-supersedes.ID}} |'
+
+  - name: Create ADR with MADR template
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new My madr Record --template madr -a User --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/006_my_madr_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring '## Context and Problem Statement'"
+          - "result.content ShouldContainSubstring '## Considered Options'"
+          - "result.content ShouldContainSubstring '## Decision Outcome'"
+
+  - name: Create ADR with invalid template
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new Broken record --template nope --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemerr ShouldContainSubstring 'invalid template'"

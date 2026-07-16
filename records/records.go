@@ -57,7 +57,11 @@ func (s Service) GetRecords() []AdrData {
 	return records
 }
 
-func (s Service) CreateRecord(title string, record AdrData) error {
+func (s Service) CreateRecord(title string, record AdrData, templateName string) error {
+	tpl, ok := templates.Templates[templateName]
+	if !ok {
+		return fmt.Errorf("unknown template %q", templateName)
+	}
 	prefix := fmt.Sprintf("%03d", 1)
 	for i := range s.ids {
 		recordID := s.ids[len(s.ids)-1-i]
@@ -87,7 +91,7 @@ func (s Service) CreateRecord(title string, record AdrData) error {
 		return err
 	}
 	defer file.Close()
-	err = templates.Templates[cs.CreateADRTemplate].Execute(file, map[string]any{
+	err = tpl.Execute(file, map[string]any{
 		"Header": strings.Trim(string(b), "\n"),
 		"Title":  cases.Title(language.Und).String(strings.ToLower(title)),
 		"Date":   record.CreationDate.Format(time.RFC1123),

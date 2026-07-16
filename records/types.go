@@ -36,7 +36,18 @@ var AdrStatusDescriptions = map[AdrStatus]string{
 	ACCEPTED:   "the record has been accepted by stakeholders",
 	DEPRECATED: "the decision record is deprecated and no longer applies",
 	SUPERSEDED: "the decision record has been superseded by a new one",
-	OBSERVED:   "the decision was observed after the fact",
+	OBSERVED:   "documents a pre-existing decision reconstructed after the fact, e.g. while making sense of legacy code you did not write",
+}
+
+// StatusHelp returns a multi-line block listing each status and its meaning,
+// suitable for appending to a command's help description.
+func StatusHelp() string {
+	var b strings.Builder
+	b.WriteString("Statuses:")
+	for _, s := range AdrStatuses {
+		fmt.Fprintf(&b, "\n  %-11s %s", s, AdrStatusDescriptions[s])
+	}
+	return b.String()
 }
 
 // String is used by fmt.Print and everywhere a status is rendered as text.

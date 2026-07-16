@@ -90,11 +90,19 @@ coverage: $(GOCOVMERGE)
 	$(GOCOVMERGE) build/*.cover.out > build/coverage.out
 	go tool cover -html=build/coverage.out -o build/coverage.html
 
-# Claude Code skill: symlink the versioned skill into the user's skills dir so it
-# stays maintained in-repo while being available globally in Claude Code.
+# Claude Code assets: symlink the versioned skill and /adr command into the user's
+# Claude dirs so they stay maintained in-repo while being available globally.
 CLAUDE_SKILLS_DIR?=$(HOME)/.claude/skills
+CLAUDE_COMMANDS_DIR?=$(HOME)/.claude/commands
 SKILL_NAME:=adr
 SKILL_SRC:=$(CURDIR)/.claude/skills/$(SKILL_NAME)
+COMMAND_SRC:=$(CURDIR)/.claude/commands/$(SKILL_NAME).md
+
+.PHONY: install-claude
+install-claude: install-skill install-command
+
+.PHONY: uninstall-claude
+uninstall-claude: uninstall-skill uninstall-command
 
 .PHONY: install-skill
 install-skill:
@@ -106,6 +114,17 @@ install-skill:
 uninstall-skill:
 	@rm -f $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)
 	@echo "removed $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)"
+
+.PHONY: install-command
+install-command:
+	@mkdir -p $(CLAUDE_COMMANDS_DIR)
+	@ln -sfn $(COMMAND_SRC) $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md
+	@echo "linked $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md -> $(COMMAND_SRC)"
+
+.PHONY: uninstall-command
+uninstall-command:
+	@rm -f $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md
+	@echo "removed $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md"
 
 .PHONY: clean
 clean:
