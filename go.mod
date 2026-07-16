@@ -1,6 +1,6 @@
 module github.com/gwleclerc/adr
 
-go 1.25.0
+go 1.26.5
 
 require (
 	github.com/dustin/go-humanize v1.0.1
