@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload coverage artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: build/*.cover.out
@@ -52,10 +52,10 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      # Run golangci-lint via the Makefile (installs the pinned version) rather than
+      # golangci-lint-action, which still ships on the deprecated Node 20 runtime.
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.12.2
+        run: make lint
 
   # Sanity check that every OS/arch target cross-compiles, without publishing.
   cross-build:
@@ -75,7 +75,7 @@ jobs:
         run: make release VERSION=ci-snapshot RELEASE=1
 
       - name: Upload snapshot artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-snapshot
           path: dist/*
