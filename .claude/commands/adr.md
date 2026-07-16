@@ -21,8 +21,9 @@ In every mode:
 - **Draft first**, don't create files until I've validated the shortlist.
 - **Never invent the rationale.** Where the *why* is ambiguous, mark it and ask me the
   ambiguous questions **batched together**; label reasoning as *inferred* vs *confirmed*.
-- Create records with `adr new "<title>" --template madr -s <status>` — `accepted` for
-  decisions taken now, `observed` for pre-existing ones reconstructed after the fact —
-  then fill the body with the validated content.
+- Get the body contract from `adr template show madr` (or a project's custom template via
+  `adr template list`), draft the body, then create in one shot:
+  `adr new "<title>" --template madr -s <status> --body-file <draft>` — `accepted` for
+  decisions taken now, `observed` for pre-existing ones. The CLI validates the body.
 
 $ARGUMENTS

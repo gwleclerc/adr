@@ -408,3 +408,77 @@ testcases:
         assertions:
           - result.code ShouldEqual 1
           - "result.systemerr ShouldContainSubstring 'invalid template'"
+
+  - name: List templates
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test template list --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'bare'
+          - result.systemout ShouldContainSubstring 'madr'
+
+  - name: Show template contract
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test template show madr --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - "result.systemout ShouldContainSubstring '## Considered Options'"
+
+  - name: Create ADR from a provided body
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          printf '## Context and Problem Statement\nWe needed X.\n\n## Considered Options\n- A vs B\n\n## Decision Outcome\nChose A.\n\n### Consequences\nSimpler.\n' > body.md
+          ./adr.test new Body driven record --template madr --body-file body.md --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/007_body_driven_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring 'We needed X.'"
+          - "result.content ShouldContainSubstring '## Considered Options'"
+
+  - name: Reject a malformed body
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          printf '## Context and Problem Statement\nonly this\n' > bad.md
+          ./adr.test new Broken body --template madr --body-file bad.md --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 1
+          - "result.systemerr ShouldContainSubstring 'missing or out-of-order section'"
+
+  - name: Custom template from templates_dir
+    steps:
+      - type: exec
+        script: |
+          cd {{.build}}
+          mkdir -p .adr/templates
+          printf '## Why\n\n> why\n\n## What changed\n\n> what\n' > .adr/templates/quick.tpl
+          printf 'templates_dir: .adr/templates\n' >> .adrrc.yml
+          ./adr.test template list --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'quick'
+      - type: exec
+        script: |
+          cd {{.build}}
+          ./adr.test new Custom template record --template quick --test.coverprofile {{.venom.testcase}}.cover.out
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring 'Record has been successfully created with ID'
+      - type: readfile
+        path: "{{.build}}/adrs/008_custom_template_record.md"
+        assertions:
+          - result.err ShouldBeEmpty
+          - "result.content ShouldContainSubstring '## What changed'"

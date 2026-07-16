@@ -3,12 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"os/user"
-	"sort"
 	"strings"
 
 	cs "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/records"
+	"github.com/gwleclerc/adr/templates"
 	"github.com/tcnksm/go-gitconfig"
 	"github.com/teris-io/shortid"
 	"github.com/urfave/cli/v3"
@@ -19,23 +21,7 @@ type newRecordOptions struct {
 	status     records.AdrStatus
 	tags       []string
 	supersedes []string
-	template   string
-}
-
-// templatesByName maps the user-facing --template value to the embedded template.
-var templatesByName = map[string]string{
-	"bare": cs.CreateADRTemplate,
-	"madr": cs.CreateADRTemplateMADR,
-}
-
-// allowedTemplates returns the --template values formatted for help/errors.
-func allowedTemplates() string {
-	names := make([]string, 0, len(templatesByName))
-	for name := range templatesByName {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return strings.Join(names, ", ")
+	body       string
 }
 
 func newCommand() *cli.Command {
@@ -72,7 +58,11 @@ It will be created in the directory defined in the nearest %s configuration file
 			&cli.StringFlag{
 				Name:  "template",
 				Value: "bare",
-				Usage: "body template, allowed: " + allowedTemplates(),
+				Usage: "body template name (see `adr template list`)",
+			},
+			&cli.StringFlag{
+				Name:  "body-file",
+				Usage: "read the record body from a file (or - for stdin) instead of the template; validated against --template",
 			},
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
@@ -86,22 +76,43 @@ It will be created in the directory defined in the nearest %s configuration file
 				printError("invalid status: %v", err)
 				return errSilent
 			}
-			template, ok := templatesByName[cmd.String("template")]
-			if !ok {
-				printError("invalid template %q: must be one of %s", cmd.String("template"), allowedTemplates())
-				return errSilent
-			}
 			service, err := records.NewService()
 			if err != nil {
 				printError("unable to initialize records service: %v", err)
 				return errSilent
 			}
+
+			reg, err := templates.Load(service.TemplatesDir())
+			if err != nil {
+				printError("unable to load templates: %v", err)
+				return errSilent
+			}
+			templateName := cmd.String("template")
+			tpl, ok := reg[templateName]
+			if !ok {
+				printError("invalid template %q: available: %s", templateName, strings.Join(templates.Names(reg), ", "))
+				return errSilent
+			}
+			body := tpl.Body
+			if cmd.IsSet("body-file") {
+				content, err := readBody(cmd.String("body-file"))
+				if err != nil {
+					printError("unable to read body: %v", err)
+					return errSilent
+				}
+				if err := templates.Validate(tpl.Body, content); err != nil {
+					printError("invalid body for template %q: %v", templateName, err)
+					return errSilent
+				}
+				body = content
+			}
+
 			opts := newRecordOptions{
 				author:     cmd.String("author"),
 				status:     status,
 				tags:       splitCSV(cmd.StringSlice("tags")),
 				supersedes: splitCSV(cmd.StringSlice("supersedes")),
-				template:   template,
+				body:       body,
 			}
 			if err := newRecord(service, title, opts); err != nil {
 				printError("unable to create a new ADR: %v", err)
@@ -110,6 +121,16 @@ It will be created in the directory defined in the nearest %s configuration file
 			return nil
 		},
 	}
+}
+
+// readBody reads a record body from a file, or from stdin when path is "-".
+func readBody(path string) (string, error) {
+	if path == "-" {
+		b, err := io.ReadAll(os.Stdin)
+		return string(b), err
+	}
+	b, err := os.ReadFile(path)
+	return string(b), err
 }
 
 func newRecord(service *records.Service, title string, opts newRecordOptions) error {
@@ -133,7 +154,7 @@ func newRecord(service *records.Service, title string, opts newRecordOptions) er
 	}
 	record.Tags.Append(opts.tags...)
 
-	if err := service.CreateRecord(title, record, opts.template); err != nil {
+	if err := service.CreateRecord(title, record, opts.body); err != nil {
 		return err
 	}
 

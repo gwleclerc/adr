@@ -71,7 +71,8 @@ OPTIONS:
    --status string, -s string     status of the record, allowed: "unknown", "proposed", "accepted", "deprecated", "superseded" or "observed" (default: "accepted")
    --tags string, -t string        tags of the record
    --supersedes string, -r string  record ids superseded by this one
-   --template string                body template, allowed: bare, madr (default: "bare")
+   --template string                body template name (see `adr template list`) (default: "bare")
+   --body-file string               read the record body from a file (or - for stdin) instead of the template
    --help, -h                      show help
 ```
 
@@ -83,11 +84,49 @@ Statement*, *Considered Options*, *Decision Outcome* and *Consequences* sections
 adr new use urfave/cli over cobra --template madr
 ```
 
-It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_architecture.md`.
+It will create a new numbered ADR in your ADR folder `001_decisive_decision_of_architecture.md`
+with placeholder prose for each section, ready to edit in your preferred editor.
 
-Then you will have to open the file in your preferred editor and start editing the ADR.
+## Templates
 
-The template contains placeholders to indicate the purpose of each section.
+Templates define the body structure of a record. Inspect them with:
+
+```bash
+adr template list          # available templates (bare, madr, plus your own)
+adr template show madr     # print a template's sections and guidance
+```
+
+Instead of editing the scaffolded file, you can supply a ready-made body — the CLI wraps
+it with the metadata and **validates** that it matches the template's sections (missing
+or empty section → error):
+
+```bash
+adr new "use urfave/cli over cobra" --template madr --body-file draft.md
+cat draft.md | adr new "use urfave/cli over cobra" --template madr --body-file -
+```
+
+### Custom templates
+
+Declare a templates directory in `.adrrc.yml`; every `*.tpl` file there becomes a template
+named after the file (a custom name equal to a built-in overrides it):
+
+```yaml
+directory: docs/adrs
+templates_dir: .adr/templates   # relative to the .adrrc.yml (or absolute)
+```
+
+A template file is just the body skeleton — the section headings (and optional `>`
+guidance). For example `.adr/templates/lightweight.tpl`:
+
+```markdown
+## Context
+> Why is this decision needed?
+
+## Decision
+> What did we decide, and why?
+```
+
+Then: `adr new "my decision" --template lightweight`.
 
 ## Record statuses
 

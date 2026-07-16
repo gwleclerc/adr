@@ -5,15 +5,13 @@ import (
 )
 
 type Config struct {
-	Directory string `yaml:"directory"`
+	Directory    string `yaml:"directory"`
+	TemplatesDir string `yaml:"templates_dir,omitempty"`
 }
 
 const (
-	ConfigurationFile     = ".adrrc.yml"
-	DefaultUserName       = "Unknown"
-	CreateADRTemplate     = "create_adr.tpl"
-	CreateADRTemplateMADR = "create_adr_madr.tpl"
-	UpdateADRTemplate     = "update_adr.tpl"
+	ConfigurationFile = ".adrrc.yml"
+	DefaultUserName   = "Unknown"
 )
 
 var (

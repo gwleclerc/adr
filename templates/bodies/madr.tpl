@@ -1,11 +1,3 @@
----
-{{.Header}}
----
-
-# {{.Title}}
-
-Date: {{.Date}}
-
 ## Context and Problem Statement
 
 > Describe the context and the problem this decision addresses. What forces are at play?

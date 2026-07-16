@@ -29,29 +29,22 @@ func init() {
 	matter.Handle("---", front.YAMLHandler)
 }
 
-func retrieveADRsPath() (string, error) {
+// LoadConfig finds the nearest configuration file and returns the parsed config
+// along with the directory that contains it (used to resolve relative paths).
+func LoadConfig() (cs.Config, string, error) {
 	path, err := gofindup.Findup(cs.ConfigurationFile)
 	if err != nil {
-		return "", err
+		return cs.Config{}, "", err
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		return cs.Config{}, "", err
 	}
 	var config cs.Config
-	err = yaml.Unmarshal(b, &config)
-	if err != nil {
-		return "", err
+	if err := yaml.Unmarshal(b, &config); err != nil {
+		return cs.Config{}, "", err
 	}
-	fullPath := filepath.Join(filepath.Dir(path), config.Directory)
-	info, err := os.Stat(fullPath)
-	if err != nil {
-		return "", err
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("%q should be a directory", fullPath)
-	}
-	return fullPath, nil
+	return config, filepath.Dir(path), nil
 }
 
 func indexADRs(path string) ([]AdrData, error) {

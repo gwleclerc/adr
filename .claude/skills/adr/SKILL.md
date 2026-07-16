@@ -39,23 +39,24 @@ Trigger proactively when a meaningful decision is reached mid-session, on reques
 when asked to document the changes just made. Do **not** create an ADR for trivial/local
 choices (variable names, one-off refactors).
 
-1. **Draft first — do not create the file yet.** Gather the reasoning from the session
+1. **Get the contract from the tool.** Run `adr template show madr` to see the exact
+   sections and their guidance — this is the single source of truth for what a body must
+   contain (don't hardcode the structure). Use `madr` unless the user prefers another
+   template (`adr template list`).
+2. **Draft the body — do not create the file yet.** Gather the reasoning from the session
    context and, when documenting recent work, from the current `git diff` / recent
-   commits (reconstruct *what* changed and *why*). Assemble the four MADR-lite parts,
-   filling what you can and asking the user only for genuine gaps:
-   - **Context & problem** — what forces/constraints motivate this?
-   - **Considered options** — at least two, each with a one-line pro/con. Name the
-     implicit "status quo / do nothing" option when it applies.
-   - **Decision & rationale** — the chosen option and *why* (the decision drivers).
-   - **Consequences** — positive and negative; what gets easier/harder.
-2. **Validate with the user.** Show the draft and confirm it's correct and complete.
-3. **Create the record only after validation, directly as `accepted`:**
+   commits (reconstruct *what* changed and *why*). Write one markdown body that fills every
+   section of the contract; fill what you can and ask the user only for genuine gaps.
+   Name the implicit "status quo / do nothing" option under *Considered Options* when it
+   applies.
+3. **Validate with the user.** Show the draft and confirm it's correct and complete.
+4. **Create the record in one shot, directly as `accepted`,** passing the validated body:
    ```bash
-   adr new "<title>" --template madr -s accepted [-a author] [-t tags] [-r <superseded-id>...]
+   adr new "<title>" --template madr -s accepted --body-file <draft> [-a author] [-t tags] [-r <superseded-id>...]
    ```
-   Then open the generated file and replace the placeholder prose with the validated
-   content. Use `--template madr` for the structured body; `--template bare` only when
-   the user wants the minimal layout.
+   The CLI validates the body against the template and rejects it if a section is missing
+   or empty, so there is no scaffold-then-overwrite step. (Omit `--body-file` to instead
+   scaffold the empty template for a human to fill.)
 
 ## Mode B — retro-document an existing repository (`/adr`)
 
@@ -86,9 +87,10 @@ rationale is not evident. This is for making sense of and re-appropriating legac
    In the body, label reasoning as *inferred* vs *confirmed by <source/user>*.
 6. **Confirm the shortlist with the user** (which decisions, what granularity) before
    writing files.
-7. **Create one condensed `observed` record per confirmed decision:**
+7. **Create one condensed `observed` record per confirmed decision,** passing the drafted
+   body (get the section contract from `adr template show madr` first):
    ```bash
-   adr new "<decision title>" --template madr -s observed -t <area> -a "<original team|unknown>"
+   adr new "<decision title>" --template madr -s observed --body-file <draft> -t <area> -a "<original team|unknown>"
    ```
    Keep each record terse: a few lines per section, one decision each.
 
@@ -111,11 +113,24 @@ and back-links it automatically. Do not hand-edit the old file's status.
 adr new "<new title>" --template madr -s accepted -r <old-id>
 ```
 
+## Templates
+
+The body structure is owned by templates, not by this skill — always learn a template's
+sections from the tool rather than hardcoding them:
+
+- `adr template list` — available templates (`bare`, `madr`, plus any custom ones).
+- `adr template show <name>` — the sections + guidance a body must fill (the contract).
+
+Projects can add their own templates: set `templates_dir: <path>` in `.adrrc.yml`; every
+`*.tpl` file there becomes a template named after the file (overriding a built-in of the
+same name). When a project ships custom templates, prefer them over `madr`.
+
 ## CLI reference
 
 | Command | Purpose |
 |---|---|
-| `adr new <title> [--template madr] [-s] [-a] [-t] [-r]` | create a record (prints its ID) |
+| `adr new <title> [--template <name>] [--body-file <f\|->] [-s] [-a] [-t] [-r]` | create a record (prints its ID); `--body-file` supplies a validated body, else the template is scaffolded |
+| `adr template list` / `adr template show <name>` | discover templates / print a template's section contract |
 | `adr list [-a] [-s] [-t]` | list/filter records as a table (filters are AND across types) |
 | `adr update <id> [-a] [-s] [-t] [-r]` | change metadata; only passed flags change; `--tags=` clears |
 | `adr add <id> [-t] [-r]` | append tags/superseders (never removes) |

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	simpleSlug "github.com/gosimple/slug"
-	cs "github.com/gwleclerc/adr/constants"
 	"github.com/gwleclerc/adr/templates"
 	"github.com/gwleclerc/adr/utils"
 	"golang.org/x/text/cases"
@@ -17,17 +16,27 @@ import (
 )
 
 type Service struct {
-	records  map[string]AdrData
-	ids      []string
-	adrsPath string
+	records      map[string]AdrData
+	ids          []string
+	adrsPath     string
+	templatesDir string
 }
 
 func NewService() (*Service, error) {
-	path, err := retrieveADRsPath()
+	cfg, dir, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
-	adrs, err := indexADRs(path)
+	adrsPath := filepath.Join(dir, cfg.Directory)
+	info, err := os.Stat(adrsPath)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("%q should be a directory", adrsPath)
+	}
+
+	adrs, err := indexADRs(adrsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +46,22 @@ func NewService() (*Service, error) {
 		records[adr.ID] = adr
 		ids = append(ids, adr.ID)
 	}
+
+	templatesDir := ""
+	if cfg.TemplatesDir != "" {
+		templatesDir = filepath.Join(dir, cfg.TemplatesDir)
+	}
 	return &Service{
-		records:  records,
-		ids:      ids,
-		adrsPath: path,
+		records:      records,
+		ids:          ids,
+		adrsPath:     adrsPath,
+		templatesDir: templatesDir,
 	}, nil
+}
+
+// TemplatesDir returns the resolved custom templates directory ("" if unset).
+func (s Service) TemplatesDir() string {
+	return s.templatesDir
 }
 
 func (s Service) GetRecord(recordID string) (AdrData, bool) {
@@ -57,11 +77,10 @@ func (s Service) GetRecords() []AdrData {
 	return records
 }
 
-func (s Service) CreateRecord(title string, record AdrData, templateName string) error {
-	tpl, ok := templates.Templates[templateName]
-	if !ok {
-		return fmt.Errorf("unknown template %q", templateName)
-	}
+// CreateRecord writes a new record file. body is the markdown of the sections
+// (a template skeleton or a caller-provided, already-validated body); the record
+// envelope (front-matter, title and date) is added here.
+func (s Service) CreateRecord(title string, record AdrData, body string) error {
 	prefix := fmt.Sprintf("%03d", 1)
 	for i := range s.ids {
 		recordID := s.ids[len(s.ids)-1-i]
@@ -81,48 +100,39 @@ func (s Service) CreateRecord(title string, record AdrData, templateName string)
 	record.CreationDate = date
 	record.LastUpdateDate = date
 
-	b, err := MarshalYAML(record)
+	header, err := MarshalYAML(record)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Create(filepath.Join(s.adrsPath, filename))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	err = tpl.Execute(file, map[string]any{
-		"Header": strings.Trim(string(b), "\n"),
-		"Title":  cases.Title(language.Und).String(strings.ToLower(title)),
-		"Date":   record.CreationDate.Format(time.RFC1123),
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+	titleCased := cases.Title(language.Und).String(strings.ToLower(title))
+	fullBody := fmt.Sprintf("# %s\n\nDate: %s\n\n%s",
+		titleCased, date.Format(time.RFC1123), strings.TrimRight(body, "\n"))
+
+	return s.writeRecord(filename, string(header), fullBody)
 }
 
 func (s Service) UpdateRecord(record AdrData) error {
 	record.LastUpdateDate = time.Now()
 
-	b, err := MarshalYAML(record)
+	header, err := MarshalYAML(record)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.Create(filepath.Join(s.adrsPath, record.Name))
+	return s.writeRecord(record.Name, string(header), record.Body)
+}
+
+func (s Service) writeRecord(filename, header, body string) error {
+	out, err := templates.RenderRecord(header, body)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filepath.Join(s.adrsPath, filename))
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-
-	err = templates.Templates[cs.UpdateADRTemplate].Execute(file, map[string]any{
-		"Header": strings.Trim(string(b), "\n"),
-		"Body":   record.Body,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err = file.WriteString(out)
+	return err
 }

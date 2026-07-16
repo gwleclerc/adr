@@ -44,6 +44,7 @@ func newApp(bi BuildInfo) *cli.Command {
 			addCommand(),
 			updateCommand(),
 			listCommand(),
+			templateCommand(),
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error {
 			if cmd.Args().Len() == 0 {
